@@ -1,0 +1,244 @@
+import { Card } from './ui/card';
+import { Button } from './ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
+import { Download, TrendingUp, TrendingDown } from 'lucide-react';
+
+export function PayrollReports() {
+  const monthlyData = [
+    { month: 'Apr', amount: 2650000000 },
+    { month: 'Mei', amount: 2720000000 },
+    { month: 'Jun', amount: 2680000000 },
+    { month: 'Jul', amount: 2758000000 },
+    { month: 'Agu', amount: 2812000000 },
+    { month: 'Sep', amount: 2783000000 },
+    { month: 'Okt', amount: 2845000000 },
+  ];
+
+  const departmentData = [
+    { name: 'Teknik', value: 1890000000, color: '#2c7be5' },
+    { name: 'Penjualan', value: 1368000000, color: '#00d27a' },
+    { name: 'Operasional', value: 896000000, color: '#f5803e' },
+    { name: 'Pemasaran', value: 836000000, color: '#27bcfd' },
+    { name: 'SDM', value: 442500000, color: '#e63757' },
+    { name: 'Keuangan', value: 288000000, color: '#95aac9' },
+  ];
+
+  const expenseBreakdown = [
+    { category: 'Gaji Pokok', amount: 2418250000, percentage: 85 },
+    { category: 'Tunjangan', amount: 569000000, percentage: 20 },
+    { category: 'Bonus', amount: 284500000, percentage: 10 },
+    { category: 'Benefit', amount: 170700000, percentage: 6 },
+    { category: 'Pajak', amount: 597450000, percentage: 21 },
+  ];
+
+  const formatCurrency = (value: number) => {
+    if (value >= 1000000000) {
+      return `Rp ${(value / 1000000000).toFixed(1)}M`;
+    }
+    return `Rp ${(value / 1000000).toFixed(0)}jt`;
+  };
+
+  const formatTooltip = (value: number) => {
+    return `Rp ${value.toLocaleString('id-ID')}`;
+  };
+
+  return (
+    <div className="p-4 md:p-6">
+      <div className="mb-4 md:mb-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="mb-1">Analitik Penggajian</h1>
+          <p className="text-muted-foreground">Analitik dan wawasan komprehensif</p>
+        </div>
+        <div className="flex gap-3">
+          <Select defaultValue="2025">
+            <SelectTrigger className="w-32">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="2025">2025</SelectItem>
+              <SelectItem value="2024">2024</SelectItem>
+              <SelectItem value="2023">2023</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button variant="outline" className="gap-2">
+            <Download size={16} />
+            Ekspor Laporan
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-4 md:mb-6">
+        <Card className="p-6 shadow-sm">
+          <p className="text-sm text-muted-foreground mb-2">Total Penggajian YTD</p>
+          <h2 className="text-3xl mb-3">Rp 28,4M</h2>
+          <div className="flex items-center gap-1 text-sm text-[#00d27a]">
+            <TrendingUp size={16} />
+            <span>8,5% vs tahun lalu</span>
+          </div>
+        </Card>
+
+        <Card className="p-6 shadow-sm">
+          <p className="text-sm text-muted-foreground mb-2">Rata-rata Biaya Bulanan</p>
+          <h2 className="text-3xl mb-3">Rp 2,81M</h2>
+          <div className="flex items-center gap-1 text-sm text-[#00d27a]">
+            <TrendingUp size={16} />
+            <span>3,2% vs bulan lalu</span>
+          </div>
+        </Card>
+
+        <Card className="p-6 shadow-sm">
+          <p className="text-sm text-muted-foreground mb-2">Biaya per Karyawan</p>
+          <h2 className="text-3xl mb-3">Rp 18,24jt</h2>
+          <div className="flex items-center gap-1 text-sm text-[#e63757]">
+            <TrendingDown size={16} />
+            <span>1,5% vs bulan lalu</span>
+          </div>
+        </Card>
+      </div>
+
+      <Tabs defaultValue="monthly" className="space-y-4 md:space-y-6">
+        <TabsList>
+          <TabsTrigger value="monthly">Tren Bulanan</TabsTrigger>
+          <TabsTrigger value="department">Per Departemen</TabsTrigger>
+          <TabsTrigger value="breakdown">Rincian Pengeluaran</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="monthly">
+          <Card className="p-4 md:p-6 shadow-sm">
+            <h3 className="mb-4 md:mb-6">Tren Penggajian Bulanan</h3>
+            <ResponsiveContainer width="100%" height={300} className="md:h-[400px]">
+              <LineChart data={monthlyData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e3e6ed" />
+                <XAxis 
+                  dataKey="month" 
+                  stroke="#748194"
+                  style={{ fontSize: '14px' }}
+                />
+                <YAxis 
+                  tickFormatter={formatCurrency} 
+                  stroke="#748194"
+                  style={{ fontSize: '14px' }}
+                />
+                <Tooltip 
+                  formatter={formatTooltip}
+                  contentStyle={{ 
+                    backgroundColor: '#fff', 
+                    border: '1px solid #e3e6ed',
+                    borderRadius: '6px'
+                  }}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="amount" 
+                  stroke="#2c7be5" 
+                  strokeWidth={3}
+                  dot={{ fill: '#2c7be5', r: 4 }}
+                  activeDot={{ r: 6 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="department">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+            <Card className="p-4 md:p-6 shadow-sm">
+              <h3 className="mb-4 md:mb-6">Distribusi Penggajian</h3>
+              <ResponsiveContainer width="100%" height={300} className="md:h-[400px]">
+                <PieChart>
+                  <Pie
+                    data={departmentData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    outerRadius={120}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {departmentData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={formatTooltip} />
+                </PieChart>
+              </ResponsiveContainer>
+            </Card>
+
+            <Card className="p-4 md:p-6 shadow-sm">
+              <h3 className="mb-4 md:mb-6">Perbandingan Departemen</h3>
+              <ResponsiveContainer width="100%" height={300} className="md:h-[400px]">
+                <BarChart data={departmentData} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e3e6ed" />
+                  <XAxis 
+                    type="number" 
+                    tickFormatter={formatCurrency}
+                    stroke="#748194"
+                    style={{ fontSize: '14px' }}
+                  />
+                  <YAxis 
+                    dataKey="name" 
+                    type="category" 
+                    width={100}
+                    stroke="#748194"
+                    style={{ fontSize: '14px' }}
+                  />
+                  <Tooltip 
+                    formatter={formatTooltip}
+                    contentStyle={{ 
+                      backgroundColor: '#fff', 
+                      border: '1px solid #e3e6ed',
+                      borderRadius: '6px'
+                    }}
+                  />
+                  <Bar dataKey="value" fill="#2c7be5" radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="breakdown">
+          <Card className="p-4 md:p-6 shadow-sm">
+            <h3 className="mb-4 md:mb-6">Rincian Pengeluaran</h3>
+            <div className="space-y-6">
+              {expenseBreakdown.map((expense) => (
+                <div key={expense.category} className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span>{expense.category}</span>
+                    <span className="text-primary">Rp {expense.amount.toLocaleString('id-ID')}</span>
+                  </div>
+                  <div className="w-full bg-muted rounded-full h-2">
+                    <div
+                      className="bg-primary h-2 rounded-full transition-all"
+                      style={{ width: `${expense.percentage}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-8 p-6 bg-muted/30 rounded">
+              <div className="grid grid-cols-2 gap-6">
+                <div>
+                  <p className="text-sm text-muted-foreground mb-2">Total Bruto</p>
+                  <p className="text-2xl">Rp 3.281.750.000</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground mb-2">Total Potongan</p>
+                  <p className="text-2xl text-[#e63757]">Rp 436.750.000</p>
+                </div>
+                <div className="col-span-2 pt-6 border-t border-border">
+                  <p className="text-sm text-muted-foreground mb-2">Penggajian Bersih</p>
+                  <p className="text-3xl text-primary">Rp 2.845.000.000</p>
+                </div>
+              </div>
+            </div>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
