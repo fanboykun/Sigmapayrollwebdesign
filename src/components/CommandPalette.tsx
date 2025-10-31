@@ -25,13 +25,15 @@
  * MENU GROUPS:
  * - Navigasi Utama
  * - Penggajian
+ * - Laporan
  * - Master Data
+ * - Presensi
  * - Administrasi
  * - Lainnya
  * 
  * @author Sistem Payroll Team
- * @version 1.0.0
- * @since 2024-10-26
+ * @version 2.0.0
+ * @since 2024-10-30
  * ==========================================================================
  */
 
@@ -121,55 +123,60 @@ export function CommandPalette({ onNavigate }: CommandPaletteProps) {
     {
       group: 'Navigasi Utama',
       items: [
-        { id: 'dashboard', label: 'Dasbor', icon: LayoutDashboard, keywords: 'dashboard home beranda' },
+        { id: 'dashboard', label: 'Dasbor', icon: LayoutDashboard, keywords: 'dashboard home beranda statistik' },
       ]
     },
     {
       group: 'Penggajian',
       items: [
-        { id: 'payroll-view', label: 'Buku Gaji', icon: Receipt, keywords: 'buku gaji payroll salary' },
-        { id: 'tax-worksheet', label: 'Tax Worksheet', icon: Calculator, keywords: 'tax pajak worksheet perhitungan' },
         { id: 'annual-payroll', label: 'Penggajian Tahunan', icon: Gift, keywords: 'penggajian tahunan thr bonus annual' },
-        { id: 'processing', label: 'Proses Penggajian', icon: DollarSign, keywords: 'proses penggajian payroll processing' },
-        { id: 'employees', label: 'Gaji Karyawan', icon: Users, keywords: 'gaji karyawan employee payroll' },
+        { id: 'processing', label: 'Proses Penggajian', icon: DollarSign, keywords: 'proses penggajian payroll processing hitung gaji' },
+        { id: 'employees', label: 'Gaji Karyawan', icon: Users, keywords: 'gaji karyawan employee payroll salary' },
+      ]
+    },
+    {
+      group: 'Laporan',
+      items: [
+        { id: 'payroll-view', label: 'Buku Gaji', icon: Receipt, keywords: 'buku gaji payroll slip salary laporan' },
+        { id: 'tax-worksheet', label: 'Tax Worksheet', icon: Calculator, keywords: 'tax pajak worksheet perhitungan pph 21' },
       ]
     },
     {
       group: 'Master Data',
       items: [
-        { id: 'hrm', label: 'Data Karyawan', icon: UserCog, keywords: 'karyawan employee data hrm' },
-        { id: 'employee-transfer', label: 'Mutasi Karyawan', icon: ArrowRightLeft, keywords: 'mutasi transfer karyawan employee' },
-        { id: 'division', label: 'Divisi', icon: Layers, keywords: 'divisi division departemen' },
-        { id: 'position', label: 'Jabatan', icon: Briefcase, keywords: 'jabatan position title' },
+        { id: 'hrm', label: 'Data Karyawan', icon: UserCog, keywords: 'karyawan employee data hrm pegawai' },
+        { id: 'employee-transfer', label: 'Mutasi Karyawan', icon: ArrowRightLeft, keywords: 'mutasi transfer karyawan employee perpindahan' },
+        { id: 'division', label: 'Divisi', icon: Layers, keywords: 'divisi division departemen unit kerja' },
+        { id: 'position', label: 'Jabatan', icon: Briefcase, keywords: 'jabatan position title posisi' },
         { id: 'wage-master', label: 'Skala Upah', icon: TrendingUp, keywords: 'skala upah wage salary gaji pokok' },
         { id: 'premium', label: 'Premi & Tunjangan', icon: Award, keywords: 'premi tunjangan premium allowance natura catu beras' },
-        { id: 'tax-master', label: 'Pajak & BPJS', icon: Receipt, keywords: 'pajak bpjs tax ptkp' },
+        { id: 'tax-master', label: 'Pajak & BPJS', icon: Receipt, keywords: 'pajak bpjs tax ptkp kesehatan ketenagakerjaan' },
       ]
     },
     {
       group: 'Presensi',
       items: [
         { id: 'working-days', label: 'Hari Kerja', icon: Calendar, keywords: 'hari kerja working days kalender' },
-        { id: 'holidays', label: 'Hari Libur', icon: CalendarDays, keywords: 'hari libur holidays cuti bersama' },
-        { id: 'attendance', label: 'Presensi', icon: ClipboardCheck, keywords: 'presensi attendance kehadiran absensi' },
-        { id: 'leave', label: 'Cuti Karyawan', icon: Umbrella, keywords: 'cuti leave karyawan annual sick divisi departemen filter' },
+        { id: 'holidays', label: 'Hari Libur', icon: CalendarDays, keywords: 'hari libur holidays cuti bersama tanggal merah' },
+        { id: 'attendance', label: 'Data Presensi', icon: ClipboardCheck, keywords: 'presensi attendance kehadiran absensi' },
+        { id: 'leave', label: 'Cuti Karyawan', icon: Umbrella, keywords: 'cuti leave karyawan annual sick sakit tahunan' },
       ]
     },
     {
       group: 'Administrasi',
       items: [
-        { id: 'user-management', label: 'Manajemen User', icon: Users, keywords: 'user manajemen pengguna' },
-        { id: 'role-management', label: 'Role & Permission', icon: Shield, keywords: 'role permission hak akses' },
+        { id: 'user-management', label: 'Manajemen User', icon: Users, keywords: 'user manajemen pengguna akses' },
+        { id: 'role-management', label: 'Role & Permission', icon: Shield, keywords: 'role permission hak akses otorisasi' },
       ]
     },
     {
       group: 'Lainnya',
       items: [
-        { id: 'reports', label: 'Analitik', icon: FileText, keywords: 'analitik analytics laporan report' },
-        { id: 'engagement', label: 'Engagement Dashboard', icon: BarChart3, keywords: 'engagement dashboard kemitraan petani' },
-        { id: 'settings', label: 'Pengaturan', icon: Settings, keywords: 'pengaturan settings konfigurasi' },
-        { id: 'profile', label: 'Profil Saya', icon: User, keywords: 'profil profile akun account' },
-        { id: 'account-settings', label: 'Pengaturan Akun', icon: Settings, keywords: 'pengaturan akun account settings' },
+        { id: 'reports', label: 'Analitik', icon: FileText, keywords: 'analitik analytics laporan report statistik' },
+        { id: 'engagement', label: 'Engagement Dashboard', icon: BarChart3, keywords: 'engagement dashboard kemitraan petani plasma' },
+        { id: 'settings', label: 'Pengaturan', icon: Settings, keywords: 'pengaturan settings konfigurasi sistem' },
+        { id: 'profile', label: 'Profil Saya', icon: User, keywords: 'profil profile akun account saya' },
+        { id: 'account-settings', label: 'Pengaturan Akun', icon: Settings, keywords: 'pengaturan akun account settings password' },
       ]
     }
   ];

@@ -70,6 +70,7 @@ export function Sidebar({ activeView, onViewChange, isOpen, onClose, collapsed }
   // State untuk collapsible sub-menu groups
   const [masterDataOpen, setMasterDataOpen] = useState(true);
   const [payrollOpen, setPayrollOpen] = useState(true);
+  const [reportsOpen, setReportsOpen] = useState(true);
   const [presenceOpen, setPresenceOpen] = useState(true);
   const [administrationOpen, setAdministrationOpen] = useState(true);
 
@@ -86,13 +87,13 @@ export function Sidebar({ activeView, onViewChange, isOpen, onClose, collapsed }
     if (desktopScrollRef.current) {
       desktopScrollRef.current.scrollTop = desktopScrollPosition.current;
     }
-  }, [masterDataOpen, payrollOpen, presenceOpen, administrationOpen, collapsed]);
+  }, [masterDataOpen, payrollOpen, reportsOpen, presenceOpen, administrationOpen, collapsed]);
 
   useEffect(() => {
     if (mobileScrollRef.current && isOpen) {
       mobileScrollRef.current.scrollTop = mobileScrollPosition.current;
     }
-  }, [masterDataOpen, payrollOpen, presenceOpen, administrationOpen, isOpen]);
+  }, [masterDataOpen, payrollOpen, reportsOpen, presenceOpen, administrationOpen, isOpen]);
 
   // Save scroll position sebelum state berubah
   const handleDesktopScroll = () => {
@@ -120,11 +121,18 @@ export function Sidebar({ activeView, onViewChange, isOpen, onClose, collapsed }
    * #MenuConfig #PayrollMenu
    */
   const payrollMenuItems = [
-    { id: 'payroll-view', label: 'Buku Gaji', icon: Receipt, module: 'payroll-view' },
-    { id: 'tax-worksheet', label: 'Tax Worksheet', icon: Calculator, module: 'tax-worksheet' },
     { id: 'annual-payroll', label: 'Penggajian Tahunan', icon: Gift, module: 'annual-payroll' },
     { id: 'processing', label: 'Proses Penggajian', icon: DollarSign, module: 'processing' },
     { id: 'employees', label: 'Gaji Karyawan', icon: Users, module: 'employees' },
+  ];
+
+  /**
+   * Menu configuration - Reports submenu
+   * #MenuConfig #ReportsMenu
+   */
+  const reportsMenuItems = [
+    { id: 'payroll-view', label: 'Buku Gaji', icon: Receipt, module: 'payroll-view' },
+    { id: 'tax-worksheet', label: 'Tax Worksheet', icon: Calculator, module: 'tax-worksheet' },
   ];
 
   /**
@@ -177,6 +185,7 @@ export function Sidebar({ activeView, onViewChange, isOpen, onClose, collapsed }
    * #PermissionFilter #MenuVisibility
    */
   const filteredPayrollMenuItems = payrollMenuItems.filter(item => canAccessMenu(item.module));
+  const filteredReportsMenuItems = reportsMenuItems.filter(item => canAccessMenu(item.module));
   const filteredMasterDataMenuItems = masterDataMenuItems.filter(item => canAccessMenu(item.module));
   const filteredPresenceMenuItems = presenceMenuItems.filter(item => canAccessMenu(item.module));
   const filteredAdministrationMenuItems = administrationMenuItems.filter(item => canAccessMenu(item.module));
@@ -414,6 +423,13 @@ export function Sidebar({ activeView, onViewChange, isOpen, onClose, collapsed }
               </li>
             )}
 
+            {/* Reports Menu Group - Collapsible */}
+            {filteredReportsMenuItems.length > 0 && (
+              <li className="pt-2">
+                {renderCollapsibleMenu('Laporan', FileText, filteredReportsMenuItems, reportsOpen, setReportsOpen)}
+              </li>
+            )}
+
             {/* Master Data Menu Group - Collapsible */}
             {filteredMasterDataMenuItems.length > 0 && (
               <li className="pt-2">
@@ -548,6 +564,13 @@ export function Sidebar({ activeView, onViewChange, isOpen, onClose, collapsed }
           {filteredPayrollMenuItems.length > 0 && (
             <li className="pt-2">
               {renderCollapsibleMenu('Penggajian', DollarSign, filteredPayrollMenuItems, payrollOpen, setPayrollOpen)}
+            </li>
+          )}
+
+          {/* Reports Menu */}
+          {filteredReportsMenuItems.length > 0 && (
+            <li className="pt-2">
+              {renderCollapsibleMenu('Laporan', FileText, filteredReportsMenuItems, reportsOpen, setReportsOpen)}
             </li>
           )}
 

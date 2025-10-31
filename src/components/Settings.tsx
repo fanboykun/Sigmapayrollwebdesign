@@ -5,13 +5,72 @@ import { Label } from './ui/label';
 import { Switch } from './ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { CheckCircle2, XCircle, Code2, Palette, Database } from 'lucide-react';
+import { CheckCircle2, XCircle, Code2, Palette, Database, FileText, Users, Shield, BarChart3, Home } from 'lucide-react';
 
 interface SettingsProps {
   onNavigate?: (view: string) => void;
 }
 
 export function Settings({ onNavigate }: SettingsProps) {
+  const menuShortcuts = [
+    { 
+      group: 'Navigasi Utama', 
+      items: [
+        { id: 'dashboard', label: 'Dasbor', icon: Home, description: 'Dashboard dan statistik sistem' }
+      ]
+    },
+    { 
+      group: 'Penggajian', 
+      items: [
+        { id: 'annual-payroll', label: 'Penggajian Tahunan', icon: FileText, description: 'THR dan bonus tahunan' },
+        { id: 'processing', label: 'Proses Penggajian', icon: FileText, description: 'Proses hitung gaji bulanan' },
+        { id: 'employees', label: 'Gaji Karyawan', icon: Users, description: 'Data gaji per karyawan' }
+      ]
+    },
+    { 
+      group: 'Laporan', 
+      items: [
+        { id: 'payroll-view', label: 'Buku Gaji', icon: FileText, description: 'Slip gaji dan rincian pembayaran' },
+        { id: 'tax-worksheet', label: 'Tax Worksheet', icon: FileText, description: 'Perhitungan pajak PPh 21' }
+      ]
+    },
+    { 
+      group: 'Master Data', 
+      items: [
+        { id: 'hrm', label: 'Data Karyawan', icon: Users, description: 'Database karyawan' },
+        { id: 'employee-transfer', label: 'Mutasi Karyawan', icon: Users, description: 'Riwayat mutasi karyawan' },
+        { id: 'division', label: 'Divisi', icon: FileText, description: 'Master divisi/departemen' },
+        { id: 'position', label: 'Jabatan', icon: FileText, description: 'Master jabatan' },
+        { id: 'wage-master', label: 'Skala Upah', icon: FileText, description: 'Skala gaji pokok' },
+        { id: 'premium', label: 'Premi & Tunjangan', icon: FileText, description: 'Tunjangan dan natura' },
+        { id: 'tax-master', label: 'Pajak & BPJS', icon: FileText, description: 'PTKP, tarif pajak, BPJS' }
+      ]
+    },
+    { 
+      group: 'Presensi', 
+      items: [
+        { id: 'working-days', label: 'Hari Kerja', icon: FileText, description: 'Kalender hari kerja' },
+        { id: 'holidays', label: 'Hari Libur', icon: FileText, description: 'Hari libur nasional' },
+        { id: 'attendance', label: 'Data Presensi', icon: FileText, description: 'Absensi karyawan' },
+        { id: 'leave', label: 'Cuti Karyawan', icon: FileText, description: 'Manajemen cuti' }
+      ]
+    },
+    { 
+      group: 'Administrasi', 
+      items: [
+        { id: 'user-management', label: 'Manajemen User', icon: Users, description: 'Kelola user sistem' },
+        { id: 'role-management', label: 'Role & Permission', icon: Shield, description: 'Hak akses role' }
+      ]
+    },
+    { 
+      group: 'Lainnya', 
+      items: [
+        { id: 'reports', label: 'Analitik', icon: BarChart3, description: 'Laporan dan analitik' },
+        { id: 'engagement', label: 'Engagement Dashboard', icon: BarChart3, description: 'Dashboard kemitraan' }
+      ]
+    }
+  ];
+
   return (
     <div className="p-4 md:p-6">
       <div className="mb-4 md:mb-6">
@@ -20,11 +79,11 @@ export function Settings({ onNavigate }: SettingsProps) {
       </div>
 
       <Tabs defaultValue="general" className="space-y-4 md:space-y-6">
-        <TabsList>
+        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5">
           <TabsTrigger value="general">Umum</TabsTrigger>
           <TabsTrigger value="payroll">Aturan Penggajian</TabsTrigger>
           <TabsTrigger value="notifications">Notifikasi</TabsTrigger>
-          <TabsTrigger value="integrations">Integrasi</TabsTrigger>
+          <TabsTrigger value="quick-access">Akses Cepat</TabsTrigger>
           <TabsTrigger value="developer">Developer</TabsTrigger>
         </TabsList>
 
@@ -129,6 +188,14 @@ export function Settings({ onNavigate }: SettingsProps) {
                     </div>
                     <Switch defaultChecked />
                   </div>
+
+                  <div className="flex items-center justify-between p-4 bg-muted/30 rounded">
+                    <div>
+                      <p className="mb-1">Potongan Presensi Otomatis</p>
+                      <p className="text-sm text-muted-foreground">Potong gaji otomatis berdasarkan ketidakhadiran</p>
+                    </div>
+                    <Switch defaultChecked />
+                  </div>
                 </div>
 
                 <div className="pt-4 border-t space-y-4">
@@ -140,6 +207,20 @@ export function Settings({ onNavigate }: SettingsProps) {
                   <div className="space-y-2">
                     <Label htmlFor="overtime-multiplier">Pengali Lembur</Label>
                     <Input id="overtime-multiplier" type="number" step="0.1" defaultValue="1.5" />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="natura-calculation">Metode Perhitungan Natura</Label>
+                    <Select defaultValue="auto">
+                      <SelectTrigger id="natura-calculation">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="auto">Otomatis (berdasarkan master)</SelectItem>
+                        <SelectItem value="manual">Manual per karyawan</SelectItem>
+                        <SelectItem value="fixed">Fixed amount</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
 
@@ -198,12 +279,28 @@ export function Settings({ onNavigate }: SettingsProps) {
                     </div>
                     <Switch defaultChecked />
                   </div>
+
+                  <div className="flex items-center justify-between p-4 bg-muted/30 rounded">
+                    <div>
+                      <p className="mb-1">Notifikasi Mutasi Karyawan</p>
+                      <p className="text-sm text-muted-foreground">Pemberitahuan saat ada mutasi karyawan</p>
+                    </div>
+                    <Switch defaultChecked />
+                  </div>
+
+                  <div className="flex items-center justify-between p-4 bg-muted/30 rounded">
+                    <div>
+                      <p className="mb-1">Persetujuan Cuti</p>
+                      <p className="text-sm text-muted-foreground">Notifikasi untuk approval cuti karyawan</p>
+                    </div>
+                    <Switch defaultChecked />
+                  </div>
                 </div>
 
                 <div className="pt-4 border-t space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="notification-email">Email Notifikasi</Label>
-                    <Input id="notification-email" type="email" defaultValue="hr@acmeindonesia.com" />
+                    <Input id="notification-email" type="email" defaultValue="hr@socfindo.co.id" />
                   </div>
 
                   <div className="space-y-2">
@@ -229,76 +326,39 @@ export function Settings({ onNavigate }: SettingsProps) {
           </Card>
         </TabsContent>
 
-        <TabsContent value="integrations">
+        <TabsContent value="quick-access">
           <Card className="shadow-sm">
             <div className="p-6 border-b border-border">
-              <h3>Integrasi</h3>
+              <h3>Akses Cepat Menu</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Daftar lengkap menu sistem yang tersedia berdasarkan permission Anda
+              </p>
             </div>
             <div className="p-6">
-              <div className="space-y-4 max-w-2xl">
-                <div className="p-5 border border-border rounded hover:border-primary/50 transition-colors">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <p>Integrasi API Bank</p>
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-[#00d27a]/10 text-[#00d27a] rounded-full text-xs">
-                          <CheckCircle2 size={12} />
-                          Terhubung
-                        </span>
-                      </div>
-                      <p className="text-sm text-muted-foreground">Hubungkan dengan bank untuk pembayaran langsung</p>
+              <div className="space-y-6">
+                {menuShortcuts.map((group) => (
+                  <div key={group.group}>
+                    <h4 className="text-sm text-muted-foreground mb-3">{group.group}</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {group.items.map((item) => {
+                        const Icon = item.icon;
+                        return (
+                          <button
+                            key={item.id}
+                            onClick={() => onNavigate?.(item.id)}
+                            className="flex items-start gap-3 p-4 border border-border rounded-lg hover:border-primary/50 hover:bg-accent/50 transition-colors text-left"
+                          >
+                            <Icon className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <p className="mb-1">{item.label}</p>
+                              <p className="text-sm text-muted-foreground">{item.description}</p>
+                            </div>
+                          </button>
+                        );
+                      })}
                     </div>
-                    <Button variant="outline" size="sm">Konfigurasi</Button>
                   </div>
-                </div>
-
-                <div className="p-5 border border-border rounded hover:border-primary/50 transition-colors">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <p>Software Akuntansi</p>
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-muted text-muted-foreground rounded-full text-xs">
-                          <XCircle size={12} />
-                          Tidak Terhubung
-                        </span>
-                      </div>
-                      <p className="text-sm text-muted-foreground">Sinkronkan data penggajian dengan sistem akuntansi</p>
-                    </div>
-                    <Button variant="outline" size="sm">Hubungkan</Button>
-                  </div>
-                </div>
-
-                <div className="p-5 border border-border rounded hover:border-primary/50 transition-colors">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <p>Sistem Pelacakan Waktu</p>
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-[#00d27a]/10 text-[#00d27a] rounded-full text-xs">
-                          <CheckCircle2 size={12} />
-                          Terhubung
-                        </span>
-                      </div>
-                      <p className="text-sm text-muted-foreground">Impor data waktu dan kehadiran karyawan</p>
-                    </div>
-                    <Button variant="outline" size="sm">Konfigurasi</Button>
-                  </div>
-                </div>
-
-                <div className="p-5 border border-border rounded hover:border-primary/50 transition-colors">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <p>Layanan Pelaporan Pajak</p>
-                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 bg-muted text-muted-foreground rounded-full text-xs">
-                          <XCircle size={12} />
-                          Tidak Terhubung
-                        </span>
-                      </div>
-                      <p className="text-sm text-muted-foreground">Otomatisasi perhitungan dan pelaporan pajak</p>
-                    </div>
-                    <Button variant="outline" size="sm">Hubungkan</Button>
-                  </div>
-                </div>
+                ))}
               </div>
             </div>
           </Card>
@@ -343,6 +403,35 @@ export function Settings({ onNavigate }: SettingsProps) {
                   </div>
                 </div>
 
+                <div className="p-5 border border-border rounded hover:border-primary/50 transition-colors">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Database size={18} className="text-primary" />
+                        <p>Database Seeder</p>
+                      </div>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Tool untuk migrasi dan seeding data ke Supabase
+                      </p>
+                      <ul className="text-sm text-muted-foreground space-y-1 mb-4">
+                        <li>• Migrasi struktur database</li>
+                        <li>• Seed data master (divisi, jabatan, dll)</li>
+                        <li>• Seed data karyawan</li>
+                        <li>• Reset dan re-seed data</li>
+                      </ul>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="gap-2"
+                        onClick={() => onNavigate?.('database-seeder')}
+                      >
+                        <Database size={16} />
+                        Buka Database Seeder
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="p-5 border border-border rounded bg-muted/30">
                   <div className="flex items-start gap-3">
                     <div className="text-muted-foreground mt-1">
@@ -366,20 +455,6 @@ export function Settings({ onNavigate }: SettingsProps) {
                       <p className="mb-1">Component Library</p>
                       <p className="text-sm text-muted-foreground">
                         Coming soon - Library komponen UI yang dapat digunakan kembali
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-5 border border-border rounded bg-muted/30">
-                  <div className="flex items-start gap-3">
-                    <div className="text-muted-foreground mt-1">
-                      <Database size={18} />
-                    </div>
-                    <div className="flex-1">
-                      <p className="mb-1">Database Schema</p>
-                      <p className="text-sm text-muted-foreground">
-                        Coming soon - Skema database untuk integrasi sistem
                       </p>
                     </div>
                   </div>

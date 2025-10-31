@@ -1,20 +1,64 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { DatePicker } from './ui/date-picker';
 import { Checkbox } from './ui/checkbox';
 import { Progress } from './ui/progress';
-import { DollarSign, Users, CheckCircle2, AlertCircle, Play } from 'lucide-react';
+import { DollarSign, Users, CheckCircle2, AlertCircle, Play, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
+import { MASTER_DIVISIONS } from '../shared/divisionData';
+import { MASTER_EMPLOYEES, getEmployeesByDivision } from '../shared/employeeData';
 
 export function PayrollProcessing() {
-  const [selectedMonth, setSelectedMonth] = useState('october-2025');
-  const [selectedDepartment, setSelectedDepartment] = useState('all');
+  const currentYear = new Date().getFullYear();
+  const currentMonth = new Date().getMonth() + 1;
+  
+  const [selectedMonth, setSelectedMonth] = useState(`october-${currentYear}`);
+  const [selectedYear, setSelectedYear] = useState(String(currentYear));
+  const [selectedDivision, setSelectedDivision] = useState('all');
   const [processingStatus, setProcessingStatus] = useState<'idle' | 'processing' | 'completed'>('idle');
   const [progress, setProgress] = useState(0);
   const [paymentDate, setPaymentDate] = useState<Date | undefined>(new Date());
+
+  // Generate year options (current year - 2 to current year + 1)
+  const yearOptions = Array.from({ length: 4 }, (_, i) => currentYear - 2 + i);
+
+  // Calculate payroll summary based on actual employee data
+  const payrollSummary = useMemo(() => {
+    const activeDivisions = MASTER_DIVISIONS.filter(d => d.isActive);
+    
+    return activeDivisions.map(division => {
+      const divisionEmployees = MASTER_EMPLOYEES.filter(
+        emp => emp.division === division.name && emp.status === 'active'
+      );
+      
+      const totalSalary = divisionEmployees.reduce((sum, emp) => {
+        // Calculate total compensation (base salary for monthly)
+        return sum + emp.baseSalary;
+      }, 0);
+      
+      return {
+        divisionId: division.id,
+        divisionCode: division.shortname,
+        divisionName: division.name,
+        employees: divisionEmployees.length,
+        amount: totalSalary,
+      };
+    }).filter(d => d.employees > 0); // Only show divisions with employees
+  }, []);
+
+  // Filter summary by selected division
+  const filteredSummary = useMemo(() => {
+    if (selectedDivision === 'all') {
+      return payrollSummary;
+    }
+    return payrollSummary.filter(d => d.divisionId === selectedDivision);
+  }, [payrollSummary, selectedDivision]);
+
+  const totalEmployees = filteredSummary.reduce((sum, div) => sum + div.employees, 0);
+  const totalAmount = filteredSummary.reduce((sum, div) => sum + div.amount, 0);
 
   const handleProcessPayroll = () => {
     setProcessingStatus('processing');
@@ -31,18 +75,6 @@ export function PayrollProcessing() {
       });
     }, 300);
   };
-
-  const payrollSummary = [
-    { department: 'Teknik', employees: 45, amount: 1890000000 },
-    { department: 'Pemasaran', employees: 22, amount: 836000000 },
-    { department: 'Penjualan', employees: 38, amount: 1368000000 },
-    { department: 'Operasional', employees: 28, amount: 896000000 },
-    { department: 'SDM', employees: 15, amount: 442500000 },
-    { department: 'Keuangan', employees: 8, amount: 288000000 },
-  ];
-
-  const totalEmployees = payrollSummary.reduce((sum, dept) => sum + dept.employees, 0);
-  const totalAmount = payrollSummary.reduce((sum, dept) => sum + dept.amount, 0);
 
   const formatCurrency = (amount: number) => {
     return `Rp ${amount.toLocaleString('id-ID')}`;
@@ -63,7 +95,23 @@ export function PayrollProcessing() {
             </div>
             <div className="p-6">
               <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm mb-2 text-muted-foreground">Tahun</label>
+                    <Select value={selectedYear} onValueChange={setSelectedYear}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {yearOptions.map((year) => (
+                          <SelectItem key={year} value={String(year)}>
+                            {year}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
                   <div>
                     <label className="block text-sm mb-2 text-muted-foreground">Periode Penggajian</label>
                     <Select value={selectedMonth} onValueChange={setSelectedMonth}>
@@ -71,27 +119,35 @@ export function PayrollProcessing() {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="october-2025">Oktober 2025</SelectItem>
-                        <SelectItem value="september-2025">September 2025</SelectItem>
-                        <SelectItem value="august-2025">Agustus 2025</SelectItem>
+                        <SelectItem value={`january-${selectedYear}`}>Januari {selectedYear}</SelectItem>
+                        <SelectItem value={`february-${selectedYear}`}>Februari {selectedYear}</SelectItem>
+                        <SelectItem value={`march-${selectedYear}`}>Maret {selectedYear}</SelectItem>
+                        <SelectItem value={`april-${selectedYear}`}>April {selectedYear}</SelectItem>
+                        <SelectItem value={`may-${selectedYear}`}>Mei {selectedYear}</SelectItem>
+                        <SelectItem value={`june-${selectedYear}`}>Juni {selectedYear}</SelectItem>
+                        <SelectItem value={`july-${selectedYear}`}>Juli {selectedYear}</SelectItem>
+                        <SelectItem value={`august-${selectedYear}`}>Agustus {selectedYear}</SelectItem>
+                        <SelectItem value={`september-${selectedYear}`}>September {selectedYear}</SelectItem>
+                        <SelectItem value={`october-${selectedYear}`}>Oktober {selectedYear}</SelectItem>
+                        <SelectItem value={`november-${selectedYear}`}>November {selectedYear}</SelectItem>
+                        <SelectItem value={`december-${selectedYear}`}>Desember {selectedYear}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
 
                   <div>
-                    <label className="block text-sm mb-2 text-muted-foreground">Departemen</label>
-                    <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
+                    <label className="block text-sm mb-2 text-muted-foreground">Divisi</label>
+                    <Select value={selectedDivision} onValueChange={setSelectedDivision}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="all">Semua Departemen</SelectItem>
-                        <SelectItem value="engineering">Teknik</SelectItem>
-                        <SelectItem value="marketing">Pemasaran</SelectItem>
-                        <SelectItem value="sales">Penjualan</SelectItem>
-                        <SelectItem value="operations">Operasional</SelectItem>
-                        <SelectItem value="hr">SDM</SelectItem>
-                        <SelectItem value="finance">Keuangan</SelectItem>
+                        <SelectItem value="all">Semua Divisi</SelectItem>
+                        {MASTER_DIVISIONS.filter(d => d.isActive).map((division) => (
+                          <SelectItem key={division.id} value={division.id}>
+                            {division.shortname} - {division.name}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -164,22 +220,27 @@ export function PayrollProcessing() {
 
           <Card className="shadow-sm">
             <div className="p-6 border-b border-border">
-              <h3>Rincian Departemen</h3>
+              <h3>Rincian Per Divisi</h3>
             </div>
             <div className="p-6">
               <div className="space-y-3">
-                {payrollSummary.map((dept) => (
+                {filteredSummary.map((div) => (
                   <div
-                    key={dept.department}
+                    key={div.divisionId}
                     className="flex items-center justify-between p-4 border border-border rounded hover:border-primary/50 transition-colors"
                   >
                     <div>
-                      <p className="mb-1">{dept.department}</p>
-                      <p className="text-sm text-muted-foreground">{dept.employees} karyawan</p>
+                      <p className="mb-1">{div.divisionCode} - {div.divisionName}</p>
+                      <p className="text-sm text-muted-foreground">{div.employees} karyawan</p>
                     </div>
-                    <p className="text-primary">{formatCurrency(dept.amount)}</p>
+                    <p className="text-primary">{formatCurrency(div.amount)}</p>
                   </div>
                 ))}
+                {filteredSummary.length === 0 && (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <p>Tidak ada data karyawan untuk divisi yang dipilih</p>
+                  </div>
+                )}
               </div>
             </div>
           </Card>
