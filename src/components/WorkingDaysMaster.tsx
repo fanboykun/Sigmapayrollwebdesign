@@ -171,29 +171,6 @@ export function WorkingDaysMaster() {
     item.year.toString().includes(searchTerm)
   );
 
-  /**
-   * Hitung hari efektif otomatis
-   */
-  const calculateEffectiveDays = (working: number, holidays: number) => {
-    return Math.max(0, working - holidays);
-  };
-
-  /**
-   * Handle perubahan input form
-   */
-  const handleInputChange = (field: string, value: string | number) => {
-    const newFormData = { ...formData, [field]: value };
-    
-    // Auto-calculate effective days
-    if (field === 'workingDays' || field === 'holidays') {
-      newFormData.effectiveDays = calculateEffectiveDays(
-        newFormData.workingDays,
-        newFormData.holidays
-      );
-    }
-    
-    setFormData(newFormData);
-  };
 
   /**
    * Buka dialog untuk tambah data baru
@@ -272,21 +249,52 @@ export function WorkingDaysMaster() {
 
   /**
    * Handle pemilihan bulan dari kalender
+   * Kalkulasi otomatis semua field berdasarkan bulan yang dipilih
    */
   const handleMonthSelect = (date: Date | undefined) => {
     if (date) {
       setSelectedDate(date);
       const monthName = format(date, "MMMM", { locale: id });
       const year = date.getFullYear();
-      
-      // Get total days in selected month
-      const daysInMonth = new Date(year, date.getMonth() + 1, 0).getDate();
-      
+      const month = date.getMonth() + 1; // 1-12
+
+      // 1. Hitung total hari dalam bulan
+      const totalDays = new Date(year, month, 0).getDate();
+
+      // 2. Hitung weekend dalam bulan (Sabtu & Minggu)
+      let weekends = 0;
+      for (let day = 1; day <= totalDays; day++) {
+        const currentDate = new Date(year, month - 1, day);
+        const dayOfWeek = currentDate.getDay();
+        if (dayOfWeek === 0 || dayOfWeek === 6) {
+          weekends++;
+        }
+      }
+
+      // 3. Hitung hari libur dari master data (excluding weekends)
+      const holidaysInMonth = MASTER_HOLIDAYS_2025.filter(holiday => {
+        const holidayDate = new Date(holiday.date);
+        const holidayMonth = holidayDate.getMonth() + 1;
+        const dayOfWeek = holidayDate.getDay();
+        // Hanya hitung libur yang bukan weekend
+        return holidayMonth === month && holidayDate.getFullYear() === year && dayOfWeek !== 0 && dayOfWeek !== 6;
+      }).length;
+
+      // 4. Hitung hari kerja = Total hari - Weekend
+      const workingDays = totalDays - weekends;
+
+      // 5. Hitung hari efektif = Hari kerja - Hari libur
+      const effectiveDays = workingDays - holidaysInMonth;
+
+      // Update form data dengan semua nilai yang sudah dikalkulasi
       setFormData({
-        ...formData,
         month: monthName,
         year: year,
-        totalDays: daysInMonth,
+        totalDays: totalDays,
+        workingDays: workingDays,
+        holidays: holidaysInMonth,
+        weekends: weekends,
+        effectiveDays: effectiveDays,
       });
     }
   };
@@ -489,24 +497,36 @@ export function WorkingDaysMaster() {
               <DialogDescription>
                 {editingItem
                   ? "Perbarui informasi hari kerja"
-                  : "Tambahkan data hari kerja baru untuk periode tertentu"}
+                  : "Pilih bulan, dan sistem akan menghitung hari kerja secara otomatis"}
               </DialogDescription>
             </DialogHeader>
 
             <div className="grid gap-4 py-4">
+              {/* Info Box */}
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm text-blue-900 font-bold mb-2">Cara Kerja:</p>
+                <p className="text-sm text-blue-900 mb-2">Pilih bulan yang ingin ditambahkan. Sistem akan otomatis menghitung:</p>
+                <ul className="list-disc list-inside text-sm text-blue-900 space-y-1">
+                  <li>Total hari dalam bulan</li>
+                  <li>Weekend (Sabtu & Minggu)</li>
+                  <li>Hari libur nasional (dari master data)</li>
+                  <li>Hari kerja efektif untuk payroll</li>
+                </ul>
+              </div>
+
               {/* Pilih Bulan dengan Calendar */}
               <div className="grid gap-2">
-                <Label>Pilih Periode</Label>
+                <Label className="text-base font-semibold">Pilih Bulan *</Label>
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className="justify-start">
-                      <Calendar className="mr-2 h-4 w-4" />
+                    <Button variant="outline" className="justify-start h-12 text-base">
+                      <Calendar className="mr-2 h-5 w-5" />
                       {selectedDate ? (
                         format(selectedDate, "MMMM yyyy", { locale: id })
                       ) : formData.month ? (
                         `${formData.month} ${formData.year}`
                       ) : (
-                        "Pilih bulan dan tahun"
+                        "Pilih bulan dan tahun..."
                       )}
                     </Button>
                   </PopoverTrigger>
@@ -519,72 +539,63 @@ export function WorkingDaysMaster() {
                     />
                   </PopoverContent>
                 </Popover>
+                <p className="text-sm text-muted-foreground">
+                  Setelah memilih bulan, semua nilai akan dikalkulasi otomatis
+                </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                {/* Total Hari */}
-                <div className="grid gap-2">
-                  <Label htmlFor="totalDays">Total Hari</Label>
-                  <Input
-                    id="totalDays"
-                    type="number"
-                    value={formData.totalDays}
-                    onChange={(e) => handleInputChange("totalDays", parseInt(e.target.value) || 0)}
-                    placeholder="31"
-                  />
-                </div>
+              {/* Hasil Kalkulasi Otomatis */}
+              {formData.month && (
+                <div className="border rounded-lg p-4 bg-muted/30">
+                  <h4 className="font-semibold mb-3 flex items-center gap-2">
+                    <span className="text-green-600">✓</span> Hasil Kalkulasi Otomatis
+                  </h4>
 
-                {/* Hari Kerja */}
-                <div className="grid gap-2">
-                  <Label htmlFor="workingDays">Hari Kerja</Label>
-                  <Input
-                    id="workingDays"
-                    type="number"
-                    value={formData.workingDays}
-                    onChange={(e) => handleInputChange("workingDays", parseInt(e.target.value) || 0)}
-                    placeholder="23"
-                  />
-                </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    {/* Total Hari */}
+                    <div className="p-3 bg-white rounded border">
+                      <Label className="text-xs text-muted-foreground">Total Hari</Label>
+                      <div className="text-2xl font-bold text-gray-700">{formData.totalDays}</div>
+                      <p className="text-xs text-muted-foreground mt-1">Hari dalam bulan</p>
+                    </div>
 
-                {/* Hari Libur */}
-                <div className="grid gap-2">
-                  <Label htmlFor="holidays">Hari Libur</Label>
-                  <Input
-                    id="holidays"
-                    type="number"
-                    value={formData.holidays}
-                    onChange={(e) => handleInputChange("holidays", parseInt(e.target.value) || 0)}
-                    placeholder="2"
-                  />
-                </div>
+                    {/* Weekend */}
+                    <div className="p-3 bg-white rounded border">
+                      <Label className="text-xs text-muted-foreground">Weekend</Label>
+                      <div className="text-2xl font-bold text-gray-700">{formData.weekends}</div>
+                      <p className="text-xs text-muted-foreground mt-1">Sabtu & Minggu</p>
+                    </div>
 
-                {/* Weekend */}
-                <div className="grid gap-2">
-                  <Label htmlFor="weekends">Weekend</Label>
-                  <Input
-                    id="weekends"
-                    type="number"
-                    value={formData.weekends}
-                    onChange={(e) => handleInputChange("weekends", parseInt(e.target.value) || 0)}
-                    placeholder="8"
-                  />
-                </div>
-              </div>
+                    {/* Hari Kerja */}
+                    <div className="p-3 bg-blue-50 rounded border border-blue-200">
+                      <Label className="text-xs text-blue-700">Hari Kerja</Label>
+                      <div className="text-2xl font-bold text-blue-700">{formData.workingDays}</div>
+                      <p className="text-xs text-blue-600 mt-1">Total - Weekend</p>
+                    </div>
 
-              {/* Hari Efektif (Auto-calculated) */}
-              <div className="grid gap-2">
-                <Label>Hari Efektif (Otomatis)</Label>
-                <div className="p-3 bg-muted rounded-md">
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">
-                      Hari Kerja - Hari Libur
-                    </span>
-                    <Badge className="bg-green-600">
-                      {formData.effectiveDays} Hari
-                    </Badge>
+                    {/* Hari Libur */}
+                    <div className="p-3 bg-red-50 rounded border border-red-200">
+                      <Label className="text-xs text-red-700">Hari Libur</Label>
+                      <div className="text-2xl font-bold text-red-700">{formData.holidays}</div>
+                      <p className="text-xs text-red-600 mt-1">Libur nasional</p>
+                    </div>
+                  </div>
+
+                  {/* Hari Efektif - Highlighted */}
+                  <div className="mt-3 p-4 bg-green-600 rounded-lg text-white">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label className="text-white/80 text-xs">HARI EFEKTIF (untuk Payroll)</Label>
+                        <div className="text-3xl font-bold mt-1">{formData.effectiveDays} Hari</div>
+                        <p className="text-white/80 text-xs mt-1">= Hari Kerja - Hari Libur</p>
+                      </div>
+                      <Badge variant="secondary" className="bg-white text-green-700 text-base px-4 py-2">
+                        Final
+                      </Badge>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
 
             <DialogFooter>
