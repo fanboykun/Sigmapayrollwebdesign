@@ -6,13 +6,13 @@
 import { useState } from 'react';
 import { Button } from './ui/button';
 import { Label } from './ui/label';
-import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from './ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { DatePicker } from './ui/date-picker';
 import { ChevronsUpDown, Check, User, Briefcase } from 'lucide-react';
 import { cn } from './ui/utils';
+import { toast } from 'sonner';
 import { MASTER_EMPLOYEES } from '../shared/employeeData';
 import { MASTER_DIVISIONS } from '../shared/divisionData';
 import { MASTER_POSITIONS } from '../shared/positionData';
@@ -30,10 +30,6 @@ export function EmployeeTransferForm({ onSubmit, onCancel }: EmployeeTransferFor
   // State untuk division combobox
   const [openDivisionCombobox, setOpenDivisionCombobox] = useState(false);
   const [selectedDivisionId, setSelectedDivisionId] = useState('');
-  
-  // State untuk position combobox
-  const [openPositionCombobox, setOpenPositionCombobox] = useState(false);
-  const [selectedPositionId, setSelectedPositionId] = useState('');
 
   // State untuk position combobox
   const [openPositionCombobox, setOpenPositionCombobox] = useState(false);
@@ -302,7 +298,6 @@ export function EmployeeTransferForm({ onSubmit, onCancel }: EmployeeTransferFor
                       aria-expanded={openPositionCombobox}
                       className="w-full justify-between"
                     >
-<<<<<<< HEAD
                       {formData.toPosition ? (
                         <div className="flex items-center gap-2">
                           <Briefcase size={16} />
@@ -311,9 +306,6 @@ export function EmployeeTransferForm({ onSubmit, onCancel }: EmployeeTransferFor
                       ) : (
                         "Pilih jabatan baru..."
                       )}
-=======
-                      {formData.toPosition || "Pilih jabatan baru..."}
->>>>>>> 37d70d1 (feat: Add position dropdown to employee transfer form)
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                     </Button>
                   </PopoverTrigger>
@@ -342,11 +334,7 @@ export function EmployeeTransferForm({ onSubmit, onCancel }: EmployeeTransferFor
                               <div className="flex flex-col">
                                 <span>{position.name}</span>
                                 <span className="text-xs text-muted-foreground">
-<<<<<<< HEAD
                                   {position.code} • {position.level.charAt(0).toUpperCase() + position.level.slice(1)}
-=======
-                                  {position.code} • {position.level}
->>>>>>> 37d70d1 (feat: Add position dropdown to employee transfer form)
                                 </span>
                               </div>
                             </CommandItem>
