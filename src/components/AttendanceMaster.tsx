@@ -74,7 +74,15 @@ import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
-import { MASTER_EMPLOYEES } from "../shared/employeeData";
+import { MASTER_EMPLOYEES, getEmployeesByDivision } from "../shared/employeeData";
+import { MASTER_DIVISIONS, Division } from "../shared/divisionData";
+import {
+  getWorkingDaysInMonth,
+  getMonthNumber,
+  isWeekend,
+  isHoliday,
+  getHolidayByDate,
+} from "../shared/holidayData";
 
 /**
  * Tipe status kehadiran
@@ -89,6 +97,9 @@ interface Attendance {
   employeeId: string;
   employeeName: string;
   employeeNIP: string;
+  division: string;
+  department: string;
+  position: string;
   date: string;
   status: AttendanceStatus;
   notes: string;
@@ -106,6 +117,9 @@ interface AttendanceSummary {
   employeeId: string;
   employeeName: string;
   employeeNIP: string;
+  division: string;
+  department: string;
+  position: string;
   totalHK: number;
   totalP: number;
   totalS: number;
@@ -127,111 +141,151 @@ export function AttendanceMaster() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Attendance | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date>();
-  const [selectedMonth, setSelectedMonth] = useState<string>(
-    format(new Date(), "MMMM", { locale: id })
-  );
-  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState<string>("November");
+  const [selectedYear, setSelectedYear] = useState<number>(2025);
+  const [selectedDivision, setSelectedDivision] = useState<string>("all");
 
   // State untuk form input
   const [formData, setFormData] = useState({
     employeeId: "",
     employeeName: "",
     employeeNIP: "",
+    division: "",
+    department: "",
+    position: "",
     date: "",
     status: "HK" as AttendanceStatus,
     notes: "",
   });
 
-  // Data karyawan untuk dropdown dari master data
-  const employees = MASTER_EMPLOYEES.map(emp => ({
+  // Data karyawan untuk dropdown dari master data (filtered by division)
+  const getEmployeesList = () => {
+    if (selectedDivision === "all") {
+      return MASTER_EMPLOYEES;
+    }
+    return getEmployeesByDivision(selectedDivision);
+  };
+
+  const employees = getEmployeesList().map(emp => ({
     id: emp.id,
     name: emp.fullName,
     nip: emp.employeeId,
+    division: emp.division,
+    department: emp.department,
+    position: emp.position,
   }));
 
-  // Data dummy untuk demonstrasi - menggunakan data master
-  const [attendances, setAttendances] = useState<Attendance[]>([
-    {
-      id: "1",
-      employeeId: "1",
-      employeeName: "Ahmad Hidayat",
-      employeeNIP: "1782829",
-      date: "2025-10-02",
-      status: "HK",
-      notes: "",
-      month: "Oktober",
-      year: 2025,
-      createdBy: "Admin",
-      createdAt: "2025-10-02",
-      updatedAt: "2025-10-02",
-    },
-    {
-      id: "2",
-      employeeId: "1",
-      employeeName: "Ahmad Hidayat",
-      employeeNIP: "1782829",
-      date: "2025-10-03",
-      status: "HK",
-      notes: "",
-      month: "Oktober",
-      year: 2025,
-      createdBy: "Admin",
-      createdAt: "2025-10-03",
-      updatedAt: "2025-10-03",
-    },
-    {
-      id: "3",
-      employeeId: "3",
-      employeeName: "Budi Santoso",
-      employeeNIP: "1745623",
-      date: "2025-10-02",
-      status: "HK",
-      notes: "",
-      month: "Oktober",
-      year: 2025,
-      createdBy: "Admin",
-      createdAt: "2025-10-02",
-      updatedAt: "2025-10-02",
-    },
-    {
-      id: "4",
-      employeeId: "3",
-      employeeName: "Budi Santoso",
-      employeeNIP: "1745623",
-      date: "2025-10-06",
-      status: "P",
-      notes: "Permisi urusan keluarga",
-      month: "Oktober",
-      year: 2025,
-      createdBy: "Admin",
-      createdAt: "2025-10-06",
-      updatedAt: "2025-10-06",
-    },
-    {
-      id: "5",
-      employeeId: "2",
-      employeeName: "Siti Nurhaliza",
-      employeeNIP: "1782634",
-      date: "2025-10-03",
-      status: "S",
-      notes: "Sakit demam",
-      month: "Oktober",
-      year: 2025,
-      createdBy: "Admin",
-      createdAt: "2025-01-03",
-      updatedAt: "2025-01-03",
-    },
-  ]);
+  // Helper function untuk generate attendance data untuk seluruh tahun 2025
+  const generateAttendanceData = (): Attendance[] => {
+    const attendanceData: Attendance[] = [];
+    let idCounter = 1;
+
+    // Definisi bulan dalam bahasa Indonesia
+    const monthNames = [
+      "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+      "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+    ];
+
+    // Generate data untuk seluruh tahun 2025 (Januari - Desember)
+    for (let month = 1; month <= 12; month++) {
+      const year = 2025;
+      const monthName = monthNames[month - 1];
+
+      // Dapatkan semua tanggal dalam bulan ini
+      const daysInMonth = new Date(year, month, 0).getDate();
+
+      // Loop setiap karyawan
+      MASTER_EMPLOYEES.forEach((emp) => {
+        // Loop setiap hari dalam bulan
+        for (let day = 1; day <= daysInMonth; day++) {
+          const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+          // Skip weekend (Sabtu dan Minggu)
+          if (isWeekend(dateStr)) {
+            continue;
+          }
+
+          // Skip hari libur nasional
+          if (isHoliday(dateStr)) {
+            continue;
+          }
+
+          let status: AttendanceStatus = "HK";
+          let notes = "";
+
+          // Simulasi variasi kehadiran berdasarkan karakteristik karyawan
+          const randomFactor = Math.random();
+
+          // Karyawan contract: 5% kemungkinan sakit
+          if (emp.employmentType === "contract" && randomFactor > 0.95) {
+            status = "S";
+            notes = "Sakit";
+          }
+          // Staff senior/Mandor: 3% kemungkinan permisi dinas
+          else if ((emp.position.includes("Mandor") || emp.position.includes("Manager")) && randomFactor > 0.97) {
+            status = "P";
+            notes = "Permisi keperluan dinas";
+          }
+          // Office staff: 4% kemungkinan cuti
+          else if (emp.division === "Head Office/Kantor Besar Medan" && randomFactor > 0.96) {
+            status = "C";
+            notes = "Cuti tahunan";
+          }
+          // Karyawan permanent: 1% kemungkinan alfa
+          else if (emp.employmentType === "permanent" && randomFactor > 0.99) {
+            status = "A";
+            notes = "Tidak hadir tanpa keterangan";
+          }
+          // Semua karyawan: 2% kemungkinan sakit ringan
+          else if (randomFactor > 0.98) {
+            status = "S";
+            notes = "Sakit ringan";
+          }
+
+          attendanceData.push({
+            id: idCounter.toString(),
+            employeeId: emp.employeeId,
+            employeeName: emp.fullName,
+            employeeNIP: emp.employeeId,
+            division: emp.division,
+            department: emp.department,
+            position: emp.position,
+            date: dateStr,
+            status: status,
+            notes: notes,
+            month: monthName,
+            year: year,
+            createdBy: "System",
+            createdAt: dateStr,
+            updatedAt: dateStr,
+          });
+
+          idCounter++;
+        }
+      });
+    }
+
+    return attendanceData;
+  };
+
+  // Data dummy untuk demonstrasi - menggunakan data master dengan division
+  const [attendances, setAttendances] = useState<Attendance[]>(generateAttendanceData());
 
   /**
-   * Filter data berdasarkan pencarian dan periode
+   * Filter data berdasarkan pencarian, periode, dan divisi
    */
-  const filteredData = attendances.filter(item =>
-    (item.employeeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.employeeNIP.toLowerCase().includes(searchTerm.toLowerCase())) &&
-    item.month === selectedMonth &&
-    item.year === selectedYear
-  );
+  const filteredData = attendances.filter(item => {
+    const matchesSearch =
+      item.employeeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.employeeNIP.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.division.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesPeriod = item.month === selectedMonth && item.year === selectedYear;
+
+    const matchesDivision = selectedDivision === "all" || item.division === selectedDivision;
+
+    return matchesSearch && matchesPeriod && matchesDivision;
+  });
 
   /**
    * Sorting data berdasarkan tanggal
@@ -255,6 +309,9 @@ export function AttendanceMaster() {
           employeeId: item.employeeId,
           employeeName: item.employeeName,
           employeeNIP: item.employeeNIP,
+          division: item.division,
+          department: item.department,
+          position: item.position,
           totalHK: 0,
           totalP: 0,
           totalS: 0,
@@ -294,20 +351,45 @@ export function AttendanceMaster() {
   };
 
   /**
+   * Hitung statistik kehadiran keseluruhan
+   */
+  const getAttendanceStats = () => {
+    // Hitung hari kerja efektif dalam bulan yang dipilih
+    const monthNumber = getMonthNumber(selectedMonth);
+    const workingDaysInMonth = getWorkingDaysInMonth(selectedYear, monthNumber);
+
+    const stats = {
+      totalEmployees: new Set(filteredData.map(item => item.employeeId)).size,
+      totalPresent: filteredData.filter(item => item.status === "HK").length,
+      totalPermission: filteredData.filter(item => item.status === "P").length,
+      totalSick: filteredData.filter(item => item.status === "S").length,
+      totalAbsent: filteredData.filter(item => item.status === "A").length,
+      totalLeave: filteredData.filter(item => item.status === "C").length,
+      totalRecords: filteredData.length,
+      workingDaysInMonth: workingDaysInMonth,
+    };
+
+    return stats;
+  };
+
+  /**
    * Handle perubahan input form
    */
   const handleInputChange = (field: string, value: string) => {
     const newFormData = { ...formData, [field]: value };
-    
+
     // Auto-fill employee data when selecting employee
     if (field === "employeeId") {
       const employee = employees.find(e => e.id === value);
       if (employee) {
         newFormData.employeeName = employee.name;
         newFormData.employeeNIP = employee.nip;
+        newFormData.division = employee.division;
+        newFormData.department = employee.department;
+        newFormData.position = employee.position;
       }
     }
-    
+
     setFormData(newFormData);
   };
 
@@ -320,6 +402,9 @@ export function AttendanceMaster() {
       employeeId: "",
       employeeName: "",
       employeeNIP: "",
+      division: "",
+      department: "",
+      position: "",
       date: "",
       status: "HK",
       notes: "",
@@ -337,6 +422,9 @@ export function AttendanceMaster() {
       employeeId: item.employeeId,
       employeeName: item.employeeName,
       employeeNIP: item.employeeNIP,
+      division: item.division,
+      department: item.department,
+      position: item.position,
       date: item.date,
       status: item.status,
       notes: item.notes,
@@ -432,6 +520,118 @@ export function AttendanceMaster() {
     }
   };
 
+  /**
+   * Export data ke CSV
+   */
+  const handleExportCSV = () => {
+    const summary = getAttendanceSummary();
+
+    // CSV Header
+    const headers = [
+      "NIP",
+      "Nama Karyawan",
+      "Divisi",
+      "Department",
+      "Posisi",
+      "Hadir (HK)",
+      "Permisi (P)",
+      "Sakit (S)",
+      "Alfa (A)",
+      "Cuti (C)",
+      "Total Hari Efektif",
+      "Periode"
+    ];
+
+    // CSV Rows
+    const rows = summary.map(item => [
+      item.employeeNIP,
+      item.employeeName,
+      item.division,
+      item.department,
+      item.position,
+      item.totalHK,
+      item.totalP,
+      item.totalS,
+      item.totalA,
+      item.totalC,
+      item.effectiveDays,
+      `${item.month} ${item.year}`
+    ]);
+
+    // Create CSV content
+    const csvContent = [
+      headers.join(","),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(","))
+    ].join("\n");
+
+    // Download CSV
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+
+    link.setAttribute("href", url);
+    link.setAttribute("download", `Ringkasan_Presensi_${selectedMonth}_${selectedYear}.csv`);
+    link.style.visibility = "hidden";
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  /**
+   * Export data detail ke CSV
+   */
+  const handleExportDetailCSV = () => {
+    // CSV Header
+    const headers = [
+      "Tanggal",
+      "NIP",
+      "Nama Karyawan",
+      "Divisi",
+      "Department",
+      "Posisi",
+      "Status",
+      "Keterangan",
+      "Dibuat Oleh",
+      "Tanggal Dibuat"
+    ];
+
+    // CSV Rows
+    const rows = sortedData.map(item => [
+      format(new Date(item.date), "dd/MM/yyyy"),
+      item.employeeNIP,
+      item.employeeName,
+      item.division,
+      item.department,
+      item.position,
+      getStatusBadge(item.status).label,
+      item.notes || "-",
+      item.createdBy,
+      item.createdAt
+    ]);
+
+    // Create CSV content
+    const csvContent = [
+      headers.join(","),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(","))
+    ].join("\n");
+
+    // Download CSV
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+
+    link.setAttribute("href", url);
+    link.setAttribute("download", `Detail_Presensi_${selectedMonth}_${selectedYear}.csv`);
+    link.style.visibility = "hidden";
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const stats = getAttendanceStats();
+
   return (
     <PermissionGuard module="attendance_master" action="view">
       <div className="p-6 space-y-6">
@@ -444,6 +644,75 @@ export function AttendanceMaster() {
           <p className="text-muted-foreground mt-2">
             Kelola data kehadiran karyawan untuk perhitungan upah pokok berdasarkan hari kerja efektif
           </p>
+        </div>
+
+        {/* Statistics Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardDescription>Hari Kerja Efektif</CardDescription>
+              <CardTitle className="text-3xl text-blue-600">{stats.workingDaysInMonth}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-sm text-muted-foreground">
+                Hari (excl. Weekend & Libur)
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardDescription>Total Karyawan</CardDescription>
+              <CardTitle className="text-3xl">{stats.totalEmployees}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-sm text-muted-foreground">
+                Periode {selectedMonth} {selectedYear}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardDescription>Total Hadir (HK)</CardDescription>
+              <CardTitle className="text-3xl text-green-600">{stats.totalPresent}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-sm text-muted-foreground">
+                {stats.totalRecords > 0
+                  ? `${((stats.totalPresent / stats.totalRecords) * 100).toFixed(1)}% dari total`
+                  : "Tidak ada data"
+                }
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardDescription>Tidak Hadir (A)</CardDescription>
+              <CardTitle className="text-3xl text-red-600">{stats.totalAbsent}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-sm text-muted-foreground">
+                {stats.totalRecords > 0
+                  ? `${((stats.totalAbsent / stats.totalRecords) * 100).toFixed(1)}% dari total`
+                  : "Tidak ada data"
+                }
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardDescription>Status Lainnya</CardDescription>
+              <CardTitle className="text-3xl">{stats.totalPermission + stats.totalSick + stats.totalLeave}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-sm text-muted-foreground">
+                P: {stats.totalPermission} | S: {stats.totalSick} | C: {stats.totalLeave}
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Tabs untuk Data Presensi dan Ringkasan */}
@@ -465,6 +734,10 @@ export function AttendanceMaster() {
                     </CardDescription>
                   </div>
                   <div className="flex items-center gap-2">
+                    <Button variant="outline" size="sm" onClick={handleExportDetailCSV}>
+                      <Download className="h-4 w-4 mr-2" />
+                      Export CSV
+                    </Button>
                     <PermissionGuard module="attendance_master" action="create">
                       <Button onClick={handleAdd}>
                         <Plus className="h-4 w-4 mr-2" />
@@ -476,58 +749,98 @@ export function AttendanceMaster() {
               </CardHeader>
               <CardContent>
                 {/* Filter & Search */}
-                <div className="flex flex-col sm:flex-row gap-4 mb-4">
-                  <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Cari nama atau NIP karyawan..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10"
-                    />
+                <div className="flex flex-col gap-4 mb-4">
+                  <div className="flex flex-col sm:flex-row gap-4">
+                    <div className="relative flex-1">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Cari nama, NIP, atau divisi..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-10"
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                        <SelectTrigger className="w-[150px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {[
+                            "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+                            "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+                          ].map((month) => (
+                            <SelectItem key={month} value={month}>
+                              {month}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Select
+                        value={selectedYear.toString()}
+                        onValueChange={(value) => setSelectedYear(parseInt(value))}
+                      >
+                        <SelectTrigger className="w-[120px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {[2023, 2024, 2025, 2026].map((year) => (
+                            <SelectItem key={year} value={year.toString()}>
+                              {year}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
-                  <div className="flex gap-2">
-                    <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                      <SelectTrigger className="w-[150px]">
-                        <SelectValue />
+
+                  {/* Division Filter */}
+                  <div className="flex items-center gap-2">
+                    <Users className="h-4 w-4 text-muted-foreground" />
+                    <Label>Filter Divisi:</Label>
+                    <Select value={selectedDivision} onValueChange={setSelectedDivision}>
+                      <SelectTrigger className="w-[300px]">
+                        <SelectValue placeholder="Pilih divisi" />
                       </SelectTrigger>
                       <SelectContent>
-                        {[
-                          "Januari", "Februari", "Maret", "April", "Mei", "Juni",
-                          "Juli", "Agustus", "September", "Oktober", "November", "Desember"
-                        ].map((month) => (
-                          <SelectItem key={month} value={month}>
-                            {month}
+                        <SelectItem value="all">
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline">Semua Divisi</Badge>
+                          </div>
+                        </SelectItem>
+                        {MASTER_DIVISIONS.filter(div => div.isActive).map((division) => (
+                          <SelectItem key={division.id} value={division.name}>
+                            <div className="flex items-center gap-2">
+                              <Badge variant="secondary">{division.shortname}</Badge>
+                              <span>{division.name}</span>
+                            </div>
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                    <Select
-                      value={selectedYear.toString()}
-                      onValueChange={(value) => setSelectedYear(parseInt(value))}
-                    >
-                      <SelectTrigger className="w-[120px]">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {[2023, 2024, 2025, 2026].map((year) => (
-                          <SelectItem key={year} value={year.toString()}>
-                            {year}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    {selectedDivision !== "all" && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setSelectedDivision("all")}
+                      >
+                        <X className="h-4 w-4 mr-1" />
+                        Reset
+                      </Button>
+                    )}
                   </div>
                 </div>
 
                 {/* Table */}
-                <div className="border rounded-lg">
+                <div className="border rounded-lg overflow-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>Tanggal</TableHead>
                         <TableHead>NIP</TableHead>
                         <TableHead>Nama Karyawan</TableHead>
+                        <TableHead>Divisi</TableHead>
+                        <TableHead>Posisi</TableHead>
                         <TableHead className="text-center">Status</TableHead>
                         <TableHead>Keterangan</TableHead>
                         <TableHead>Dibuat Oleh</TableHead>
@@ -537,13 +850,14 @@ export function AttendanceMaster() {
                     <TableBody>
                       {sortedData.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                          <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                             Tidak ada data presensi untuk periode yang dipilih
                           </TableCell>
                         </TableRow>
                       ) : (
                         sortedData.map((item) => {
                           const statusBadge = getStatusBadge(item.status);
+                          const division = MASTER_DIVISIONS.find(d => d.name === item.division);
                           return (
                             <TableRow key={item.id}>
                               <TableCell>
@@ -554,10 +868,30 @@ export function AttendanceMaster() {
                                   </div>
                                 </div>
                               </TableCell>
-                              <TableCell>{item.employeeNIP}</TableCell>
-                              <TableCell>{item.employeeName}</TableCell>
+                              <TableCell>
+                                <span className="font-mono text-sm">{item.employeeNIP}</span>
+                              </TableCell>
+                              <TableCell>
+                                <div>
+                                  <div className="font-medium">{item.employeeName}</div>
+                                  <div className="text-sm text-muted-foreground">{item.department}</div>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  {division && (
+                                    <Badge variant="outline" className="text-xs">
+                                      {division.shortname}
+                                    </Badge>
+                                  )}
+                                  <span className="text-sm">{item.division}</span>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <span className="text-sm">{item.position}</span>
+                              </TableCell>
                               <TableCell className="text-center">
-                                <Badge 
+                                <Badge
                                   variant={statusBadge.variant}
                                   className={statusBadge.className}
                                 >
@@ -569,7 +903,9 @@ export function AttendanceMaster() {
                                   {item.notes || "-"}
                                 </div>
                               </TableCell>
-                              <TableCell>{item.createdBy}</TableCell>
+                              <TableCell>
+                                <span className="text-sm">{item.createdBy}</span>
+                              </TableCell>
                               <TableCell className="text-right">
                                 <div className="flex items-center justify-end gap-2">
                                   <PermissionGuard module="attendance_master" action="edit">
@@ -618,55 +954,95 @@ export function AttendanceMaster() {
                     </CardDescription>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline" size="sm" onClick={handleExportCSV}>
                       <Download className="h-4 w-4 mr-2" />
-                      Export Excel
+                      Export CSV
                     </Button>
                   </div>
                 </div>
               </CardHeader>
               <CardContent>
                 {/* Filter */}
-                <div className="flex gap-2 mb-4">
-                  <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                    <SelectTrigger className="w-[150px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {[
-                        "Januari", "Februari", "Maret", "April", "Mei", "Juni",
-                        "Juli", "Agustus", "September", "Oktober", "November", "Desember"
-                      ].map((month) => (
-                        <SelectItem key={month} value={month}>
-                          {month}
+                <div className="flex flex-col gap-4 mb-4">
+                  <div className="flex gap-2">
+                    <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                      <SelectTrigger className="w-[150px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[
+                          "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+                          "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+                        ].map((month) => (
+                          <SelectItem key={month} value={month}>
+                            {month}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Select
+                      value={selectedYear.toString()}
+                      onValueChange={(value) => setSelectedYear(parseInt(value))}
+                    >
+                      <SelectTrigger className="w-[120px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {[2023, 2024, 2025, 2026].map((year) => (
+                          <SelectItem key={year} value={year.toString()}>
+                            {year}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Division Filter for Summary */}
+                  <div className="flex items-center gap-2">
+                    <Users className="h-4 w-4 text-muted-foreground" />
+                    <Label>Filter Divisi:</Label>
+                    <Select value={selectedDivision} onValueChange={setSelectedDivision}>
+                      <SelectTrigger className="w-[300px]">
+                        <SelectValue placeholder="Pilih divisi" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline">Semua Divisi</Badge>
+                          </div>
                         </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Select
-                    value={selectedYear.toString()}
-                    onValueChange={(value) => setSelectedYear(parseInt(value))}
-                  >
-                    <SelectTrigger className="w-[120px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {[2023, 2024, 2025, 2026].map((year) => (
-                        <SelectItem key={year} value={year.toString()}>
-                          {year}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                        {MASTER_DIVISIONS.filter(div => div.isActive).map((division) => (
+                          <SelectItem key={division.id} value={division.name}>
+                            <div className="flex items-center gap-2">
+                              <Badge variant="secondary">{division.shortname}</Badge>
+                              <span>{division.name}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {selectedDivision !== "all" && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setSelectedDivision("all")}
+                      >
+                        <X className="h-4 w-4 mr-1" />
+                        Reset
+                      </Button>
+                    )}
+                  </div>
                 </div>
 
                 {/* Table Ringkasan */}
-                <div className="border rounded-lg">
+                <div className="border rounded-lg overflow-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>NIP</TableHead>
                         <TableHead>Nama Karyawan</TableHead>
+                        <TableHead>Divisi</TableHead>
+                        <TableHead>Posisi</TableHead>
                         <TableHead className="text-center">Hadir (HK)</TableHead>
                         <TableHead className="text-center">Permisi (P)</TableHead>
                         <TableHead className="text-center">Sakit (S)</TableHead>
@@ -678,47 +1054,70 @@ export function AttendanceMaster() {
                     <TableBody>
                       {getAttendanceSummary().length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                          <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                             Tidak ada data ringkasan untuk periode yang dipilih
                           </TableCell>
                         </TableRow>
                       ) : (
-                        getAttendanceSummary().map((summary) => (
-                          <TableRow key={summary.employeeId}>
-                            <TableCell>{summary.employeeNIP}</TableCell>
-                            <TableCell>{summary.employeeName}</TableCell>
-                            <TableCell className="text-center">
-                              <Badge variant="default" className="bg-green-600">
-                                {summary.totalHK}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-center">
-                              <Badge variant="secondary">
-                                {summary.totalP}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-center">
-                              <Badge variant="outline" className="border-yellow-500 text-yellow-700">
-                                {summary.totalS}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-center">
-                              <Badge variant="destructive">
-                                {summary.totalA}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-center">
-                              <Badge variant="outline" className="border-blue-500 text-blue-700">
-                                {summary.totalC}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-center">
-                              <Badge variant="default" className="bg-blue-600">
-                                {summary.effectiveDays} Hari
-                              </Badge>
-                            </TableCell>
-                          </TableRow>
-                        ))
+                        getAttendanceSummary().map((summary) => {
+                          const division = MASTER_DIVISIONS.find(d => d.name === summary.division);
+                          return (
+                            <TableRow key={summary.employeeId}>
+                              <TableCell>
+                                <span className="font-mono text-sm">{summary.employeeNIP}</span>
+                              </TableCell>
+                              <TableCell>
+                                <div>
+                                  <div className="font-medium">{summary.employeeName}</div>
+                                  <div className="text-sm text-muted-foreground">{summary.department}</div>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  {division && (
+                                    <Badge variant="outline" className="text-xs">
+                                      {division.shortname}
+                                    </Badge>
+                                  )}
+                                  <span className="text-sm">{summary.division}</span>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <span className="text-sm">{summary.position}</span>
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <Badge variant="default" className="bg-green-600">
+                                  {summary.totalHK}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <Badge variant="secondary">
+                                  {summary.totalP}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <Badge variant="outline" className="border-yellow-500 text-yellow-700">
+                                  {summary.totalS}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <Badge variant="destructive">
+                                  {summary.totalA}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <Badge variant="outline" className="border-blue-500 text-blue-700">
+                                  {summary.totalC}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <Badge variant="default" className="bg-blue-600">
+                                  {summary.effectiveDays} Hari
+                                </Badge>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })
                       )}
                     </TableBody>
                   </Table>
@@ -743,6 +1142,39 @@ export function AttendanceMaster() {
             </DialogHeader>
 
             <div className="grid gap-4 py-4">
+              {/* Filter Divisi */}
+              {!editingItem && (
+                <div className="grid gap-2 p-3 bg-muted/50 rounded-md">
+                  <Label>Filter Karyawan berdasarkan Divisi</Label>
+                  <Select value={selectedDivision} onValueChange={setSelectedDivision}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih divisi untuk filter" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline">Semua Divisi</Badge>
+                        </div>
+                      </SelectItem>
+                      {MASTER_DIVISIONS.filter(div => div.isActive).map((division) => (
+                        <SelectItem key={division.id} value={division.name}>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="secondary">{division.shortname}</Badge>
+                            <span>{division.name}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    {selectedDivision === "all"
+                      ? `Menampilkan ${employees.length} karyawan dari semua divisi`
+                      : `Menampilkan ${employees.length} karyawan dari divisi ${selectedDivision}`
+                    }
+                  </p>
+                </div>
+              )}
+
               {/* Pilih Karyawan */}
               <div className="grid gap-2">
                 <Label htmlFor="employeeId">Karyawan *</Label>
@@ -755,14 +1187,52 @@ export function AttendanceMaster() {
                     <SelectValue placeholder="Pilih karyawan" />
                   </SelectTrigger>
                   <SelectContent>
-                    {employees.map((emp) => (
-                      <SelectItem key={emp.id} value={emp.id}>
-                        {emp.nip} - {emp.name}
-                      </SelectItem>
-                    ))}
+                    {employees.map((emp) => {
+                      const division = MASTER_DIVISIONS.find(d => d.name === emp.division);
+                      return (
+                        <SelectItem key={emp.id} value={emp.id}>
+                          <div className="flex items-center gap-2">
+                            {division && (
+                              <Badge variant="outline" className="text-xs">
+                                {division.shortname}
+                              </Badge>
+                            )}
+                            <span>{emp.nip} - {emp.name}</span>
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Info Karyawan yang dipilih */}
+              {formData.employeeId && (
+                <div className="p-3 bg-blue-50 dark:bg-blue-950/20 rounded-md border border-blue-200 dark:border-blue-900">
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div>
+                      <span className="text-muted-foreground">NIP:</span>
+                      <span className="ml-2 font-mono font-medium">{formData.employeeNIP}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Nama:</span>
+                      <span className="ml-2 font-medium">{formData.employeeName}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Divisi:</span>
+                      <span className="ml-2">{formData.division}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Department:</span>
+                      <span className="ml-2">{formData.department}</span>
+                    </div>
+                    <div className="col-span-2">
+                      <span className="text-muted-foreground">Posisi:</span>
+                      <span className="ml-2">{formData.position}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-4">
                 {/* Pilih Tanggal */}

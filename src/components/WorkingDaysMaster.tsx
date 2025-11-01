@@ -59,6 +59,12 @@ import { Calendar as CalendarComponent } from "./ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
+import {
+  getWorkingDaysInMonth,
+  getMonthNumber,
+  MASTER_HOLIDAYS_2025,
+  MONTH_NAMES_ID,
+} from "../shared/holidayData";
 
 /**
  * Interface untuk data Hari Kerja
@@ -100,48 +106,62 @@ export function WorkingDaysMaster() {
     effectiveDays: 0,
   });
 
-  // Data dummy untuk demonstrasi
-  const [workingDays, setWorkingDays] = useState<WorkingDay[]>([
-    {
-      id: "1",
-      month: "Januari",
-      year: 2025,
-      totalDays: 31,
-      workingDays: 23,
-      holidays: 2,
-      weekends: 8,
-      effectiveDays: 21,
-      createdBy: "Admin",
-      createdAt: "2025-01-01",
-      updatedAt: "2025-01-01",
-    },
-    {
-      id: "2",
-      month: "Februari",
-      year: 2025,
-      totalDays: 28,
-      workingDays: 20,
-      holidays: 0,
-      weekends: 8,
-      effectiveDays: 20,
-      createdBy: "Admin",
-      createdAt: "2025-02-01",
-      updatedAt: "2025-02-01",
-    },
-    {
-      id: "3",
-      month: "Maret",
-      year: 2025,
-      totalDays: 31,
-      workingDays: 21,
-      holidays: 1,
-      weekends: 9,
-      effectiveDays: 20,
-      createdBy: "Admin",
-      createdAt: "2025-03-01",
-      updatedAt: "2025-03-01",
-    },
-  ]);
+  // Helper function untuk generate data hari kerja seluruh tahun 2025
+  const generateWorkingDaysData = (): WorkingDay[] => {
+    const data: WorkingDay[] = [];
+    const year = 2025;
+
+    for (let month = 1; month <= 12; month++) {
+      const monthName = MONTH_NAMES_ID[month - 1];
+
+      // Hitung total hari dalam bulan
+      const totalDays = new Date(year, month, 0).getDate();
+
+      // Hitung weekend dalam bulan (Sabtu & Minggu)
+      let weekends = 0;
+      for (let day = 1; day <= totalDays; day++) {
+        const date = new Date(year, month - 1, day);
+        const dayOfWeek = date.getDay();
+        if (dayOfWeek === 0 || dayOfWeek === 6) {
+          weekends++;
+        }
+      }
+
+      // Hitung hari libur dari master data (excluding weekends)
+      const holidaysInMonth = MASTER_HOLIDAYS_2025.filter(holiday => {
+        const holidayDate = new Date(holiday.date);
+        const holidayMonth = holidayDate.getMonth() + 1;
+        const dayOfWeek = holidayDate.getDay();
+        // Hanya hitung libur yang bukan weekend
+        return holidayMonth === month && dayOfWeek !== 0 && dayOfWeek !== 6;
+      }).length;
+
+      // Hari kerja = Total hari - Weekend
+      const workingDays = totalDays - weekends;
+
+      // Hari efektif = Hari kerja - Hari libur
+      const effectiveDays = getWorkingDaysInMonth(year, month);
+
+      data.push({
+        id: month.toString(),
+        month: monthName,
+        year: year,
+        totalDays: totalDays,
+        workingDays: workingDays,
+        holidays: holidaysInMonth,
+        weekends: weekends,
+        effectiveDays: effectiveDays,
+        createdBy: "System",
+        createdAt: `${year}-${String(month).padStart(2, '0')}-01`,
+        updatedAt: `${year}-${String(month).padStart(2, '0')}-01`,
+      });
+    }
+
+    return data;
+  };
+
+  // Data hari kerja untuk seluruh tahun 2025
+  const [workingDays, setWorkingDays] = useState<WorkingDay[]>(generateWorkingDaysData());
 
   /**
    * Filter data berdasarkan pencarian
@@ -271,6 +291,14 @@ export function WorkingDaysMaster() {
     }
   };
 
+  // Hitung total statistik tahunan
+  const yearlyStats = {
+    totalWorkingDays: workingDays.reduce((sum, item) => sum + item.workingDays, 0),
+    totalHolidays: workingDays.reduce((sum, item) => sum + item.holidays, 0),
+    totalWeekends: workingDays.reduce((sum, item) => sum + item.weekends, 0),
+    totalEffectiveDays: workingDays.reduce((sum, item) => sum + item.effectiveDays, 0),
+  };
+
   return (
     <PermissionGuard module="working_days_master" action="view">
       <div className="p-6 space-y-6">
@@ -283,6 +311,57 @@ export function WorkingDaysMaster() {
           <p className="text-muted-foreground mt-2">
             Kelola data hari kerja efektif per bulan untuk perhitungan gaji karyawan
           </p>
+        </div>
+
+        {/* Statistics Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardDescription>Total Hari Kerja</CardDescription>
+              <CardTitle className="text-3xl text-blue-600">{yearlyStats.totalWorkingDays}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-sm text-muted-foreground">
+                Tahun 2025 (excl. weekend)
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardDescription>Total Hari Efektif</CardDescription>
+              <CardTitle className="text-3xl text-green-600">{yearlyStats.totalEffectiveDays}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-sm text-muted-foreground">
+                Tahun 2025 (untuk payroll)
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardDescription>Total Hari Libur</CardDescription>
+              <CardTitle className="text-3xl text-red-600">{yearlyStats.totalHolidays}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-sm text-muted-foreground">
+                Libur nasional & perusahaan
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardDescription>Total Weekend</CardDescription>
+              <CardTitle className="text-3xl text-gray-600">{yearlyStats.totalWeekends}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-sm text-muted-foreground">
+                Sabtu & Minggu
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Card dengan Table */}
