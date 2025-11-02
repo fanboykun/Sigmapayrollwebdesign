@@ -35,6 +35,8 @@ import {
   useEffect,
   ReactNode,
 } from "react";
+import { supabase } from "../utils/supabase/client";
+import type { User as SupabaseUser } from "@supabase/supabase-js";
 
 /**
  * User role types yang tersedia dalam sistem
@@ -967,26 +969,73 @@ export function AuthProvider({
   const [isLoading, setIsLoading] = useState(true);
 
   /**
-   * Effect untuk restore user session dari localStorage saat app load
-   * #SessionRestore #LocalStorage
+   * Effect untuk restore user session dari Supabase saat app load
+   * #SessionRestore #SupabaseAuth
    */
   useEffect(() => {
-    // Cek apakah user sudah login sebelumnya (dari localStorage)
-    const storedUser = localStorage.getItem("auth_user");
-    if (storedUser) {
-      try {
-        setUser(JSON.parse(storedUser));
-      } catch (error) {
-        // Jika data corrupt, hapus dari localStorage
-        localStorage.removeItem("auth_user");
+    // Check active sessions and sets the user
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session?.user) {
+        // Fetch user data from our users table
+        const { data: userData, error } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+
+        if (userData && !error) {
+          const appUser: User = {
+            id: userData.id,
+            name: userData.full_name,
+            email: userData.email,
+            role: userData.role as UserRole,
+            employeeId: userData.employee_id || undefined,
+            status: 'active',
+            createdAt: userData.created_at,
+            lastLogin: new Date().toISOString(),
+          };
+          setUser(appUser);
+        }
       }
-    }
-    setIsLoading(false);
+      setIsLoading(false);
+    });
+
+    // Listen for changes on auth state (sign in, sign out, etc.)
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (session?.user) {
+        // Fetch user data from our users table
+        const { data: userData, error } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+
+        if (userData && !error) {
+          const appUser: User = {
+            id: userData.id,
+            name: userData.full_name,
+            email: userData.email,
+            role: userData.role as UserRole,
+            employeeId: userData.employee_id || undefined,
+            status: 'active',
+            createdAt: userData.created_at,
+            lastLogin: new Date().toISOString(),
+          };
+          setUser(appUser);
+        }
+      } else {
+        setUser(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   /**
-   * Fungsi login untuk autentikasi user
-   * #LoginFunction #Authentication
+   * Fungsi login untuk autentikasi user menggunakan Supabase Auth
+   * #LoginFunction #Authentication #SupabaseAuth
    *
    * @param email - Email user
    * @param password - Password user
@@ -996,44 +1045,75 @@ export function AuthProvider({
     email: string,
     password: string,
   ): Promise<boolean> => {
-    setIsLoading(true);
+    try {
+      setIsLoading(true);
 
-    // Simulasi API call delay (akan diganti dengan real API)
-    await new Promise((resolve) => setTimeout(resolve, 500));
+      // Sign in with Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    // Validasi credentials
-    const foundUser = MOCK_USERS.find(
-      (u) => u.email === email && u.status === "active",
-    );
-    const validPassword = MOCK_PASSWORDS[email] === password;
+      if (authError) {
+        console.error('Login error:', authError);
+        setIsLoading(false);
+        return false;
+      }
 
-    if (foundUser && validPassword) {
-      // Update last login time
-      const updatedUser = {
-        ...foundUser,
-        lastLogin: new Date().toISOString(),
-      };
-      setUser(updatedUser);
-      // Simpan ke localStorage untuk persistent session
-      localStorage.setItem(
-        "auth_user",
-        JSON.stringify(updatedUser),
-      );
+      if (authData.user) {
+        // Fetch user data from our users table
+        const { data: userData, error: userError } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', authData.user.id)
+          .single();
+
+        if (userError) {
+          console.error('Error fetching user data:', userError);
+          await supabase.auth.signOut();
+          setIsLoading(false);
+          return false;
+        }
+
+        if (userData) {
+          const appUser: User = {
+            id: userData.id,
+            name: userData.full_name,
+            email: userData.email,
+            role: userData.role as UserRole,
+            employeeId: userData.employee_id || undefined,
+            status: 'active',
+            createdAt: userData.created_at,
+            lastLogin: new Date().toISOString(),
+          };
+          setUser(appUser);
+          setIsLoading(false);
+          return true;
+        }
+      }
+
       setIsLoading(false);
-      return true;
+      return false;
+    } catch (error) {
+      console.error('Unexpected login error:', error);
+      setIsLoading(false);
+      return false;
     }
-
-    setIsLoading(false);
-    return false;
   };
 
   /**
-   * Fungsi logout untuk menghapus session user
-   * #LogoutFunction #SessionClear
+   * Fungsi logout untuk menghapus session user menggunakan Supabase Auth
+   * #LogoutFunction #SessionClear #SupabaseAuth
    */
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem("auth_user");
+  const logout = async () => {
+    try {
+      await supabase.auth.signOut();
+      setUser(null);
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Still clear user state even if signOut fails
+      setUser(null);
+    }
   };
 
   /**

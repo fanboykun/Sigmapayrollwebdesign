@@ -16,16 +16,17 @@
  * @author Sistem ERP Perkebunan Sawit
  */
 
-import { useState } from "react";
-import { 
-  Calendar as CalendarIcon, 
-  Plus, 
-  Pencil, 
-  Trash2, 
+import { useState, useEffect } from "react";
+import {
+  Calendar as CalendarIcon,
+  Plus,
+  Pencil,
+  Trash2,
   Search,
   Save,
   X,
-  AlertCircle
+  AlertCircle,
+  Loader2
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -67,26 +68,22 @@ import { PermissionGuard } from "./PermissionGuard";
 import { DatePicker } from "./ui/date-picker";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
+import { useHolidays } from "../hooks/useHolidays";
+import { useToast } from "./ui/use-toast";
 
 /**
- * Tipe kategori hari libur
+ * Tipe kategori hari libur (sesuai dengan database enum)
  */
-type HolidayCategory = "Nasional" | "Cuti Bersama" | "Perusahaan";
+type HolidayCategory = "national" | "religious" | "company";
 
 /**
- * Interface untuk data Hari Libur
+ * Display labels untuk kategori
  */
-interface Holiday {
-  id: string;
-  date: string;
-  name: string;
-  category: HolidayCategory;
-  description: string;
-  isPaid: boolean;
-  createdBy: string;
-  createdAt: string;
-  updatedAt: string;
-}
+const categoryLabels: Record<HolidayCategory, string> = {
+  national: "Nasional",
+  religious: "Keagamaan",
+  company: "Perusahaan",
+};
 
 /**
  * Komponen utama HolidayMaster
@@ -94,93 +91,38 @@ interface Holiday {
  */
 export function HolidayMaster() {
   const { user } = useAuth();
+  const { toast } = useToast();
+  const { holidays, loading, error, addHoliday, updateHoliday, deleteHoliday } = useHolidays();
+
   const [searchTerm, setSearchTerm] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState<Holiday | null>(null);
+  const [editingItem, setEditingItem] = useState<any | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date>();
+  const [isSaving, setIsSaving] = useState(false);
 
   // State untuk form input
   const [formData, setFormData] = useState({
     date: "",
     name: "",
-    category: "Nasional" as HolidayCategory,
+    type: "national" as HolidayCategory,
     description: "",
-    isPaid: true,
+    is_paid: true,
   });
-
-  // Data dummy untuk demonstrasi
-  const [holidays, setHolidays] = useState<Holiday[]>([
-    {
-      id: "1",
-      date: "2025-01-01",
-      name: "Tahun Baru 2025",
-      category: "Nasional",
-      description: "Hari libur nasional tahun baru masehi",
-      isPaid: true,
-      createdBy: "Admin",
-      createdAt: "2024-12-01",
-      updatedAt: "2024-12-01",
-    },
-    {
-      id: "2",
-      date: "2025-03-31",
-      name: "Hari Raya Idul Fitri",
-      category: "Nasional",
-      description: "Hari libur nasional Idul Fitri 1446 H",
-      isPaid: true,
-      createdBy: "Admin",
-      createdAt: "2024-12-01",
-      updatedAt: "2024-12-01",
-    },
-    {
-      id: "3",
-      date: "2025-04-01",
-      name: "Cuti Bersama Idul Fitri",
-      category: "Cuti Bersama",
-      description: "Cuti bersama pasca Idul Fitri",
-      isPaid: true,
-      createdBy: "Admin",
-      createdAt: "2024-12-01",
-      updatedAt: "2024-12-01",
-    },
-    {
-      id: "4",
-      date: "2025-05-01",
-      name: "Hari Buruh Internasional",
-      category: "Nasional",
-      description: "Hari libur buruh/May Day",
-      isPaid: true,
-      createdBy: "Admin",
-      createdAt: "2024-12-01",
-      updatedAt: "2024-12-01",
-    },
-    {
-      id: "5",
-      date: "2025-08-17",
-      name: "Hari Kemerdekaan RI",
-      category: "Nasional",
-      description: "Hari libur nasional kemerdekaan Indonesia",
-      isPaid: true,
-      createdBy: "Admin",
-      createdAt: "2024-12-01",
-      updatedAt: "2024-12-01",
-    },
-  ]);
 
   /**
    * Filter data berdasarkan pencarian
    */
   const filteredData = holidays.filter(item =>
     item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    categoryLabels[item.type as HolidayCategory].toLowerCase().includes(searchTerm.toLowerCase()) ||
     item.date.includes(searchTerm)
   );
 
   /**
    * Sorting data berdasarkan tanggal
    */
-  const sortedData = [...filteredData].sort((a, b) => 
+  const sortedData = [...filteredData].sort((a, b) =>
     new Date(a.date).getTime() - new Date(b.date).getTime()
   );
 
@@ -199,9 +141,9 @@ export function HolidayMaster() {
     setFormData({
       date: "",
       name: "",
-      category: "Nasional",
+      type: "national",
       description: "",
-      isPaid: true,
+      is_paid: true,
     });
     setSelectedDate(undefined);
     setIsDialogOpen(true);
@@ -210,62 +152,103 @@ export function HolidayMaster() {
   /**
    * Buka dialog untuk edit data
    */
-  const handleEdit = (item: Holiday) => {
+  const handleEdit = (item: any) => {
     setEditingItem(item);
     setFormData({
       date: item.date,
       name: item.name,
-      category: item.category,
-      description: item.description,
-      isPaid: item.isPaid,
+      type: item.type,
+      description: item.description || "",
+      is_paid: item.is_paid,
     });
     setSelectedDate(new Date(item.date));
     setIsDialogOpen(true);
   };
 
   /**
-   * Simpan data (create/update)
+   * Simpan data (create/update) menggunakan Supabase
    */
-  const handleSave = () => {
+  const handleSave = async () => {
     // Validasi
     if (!formData.date || !formData.name) {
-      alert("Tanggal dan nama hari libur wajib diisi!");
+      toast({
+        title: "Validasi Gagal",
+        description: "Tanggal dan nama hari libur wajib diisi!",
+        variant: "destructive",
+      });
       return;
     }
 
-    if (editingItem) {
-      // Update existing
-      setHolidays(holidays.map(item =>
-        item.id === editingItem.id
-          ? {
-              ...item,
-              ...formData,
-              updatedAt: new Date().toISOString().split('T')[0],
-            }
-          : item
-      ));
-    } else {
-      // Create new
-      const newItem: Holiday = {
-        id: (holidays.length + 1).toString(),
-        ...formData,
-        createdBy: user?.name || "Admin",
-        createdAt: new Date().toISOString().split('T')[0],
-        updatedAt: new Date().toISOString().split('T')[0],
-      };
-      setHolidays([...holidays, newItem]);
+    setIsSaving(true);
+
+    try {
+      if (editingItem) {
+        // Update existing
+        const { error } = await updateHoliday(editingItem.id, formData);
+        if (error) throw new Error(error);
+
+        toast({
+          title: "Berhasil",
+          description: "Data hari libur berhasil diupdate",
+        });
+      } else {
+        // Create new
+        const { error } = await addHoliday(formData);
+        if (error) throw new Error(error);
+
+        toast({
+          title: "Berhasil",
+          description: "Data hari libur berhasil ditambahkan",
+        });
+      }
+
+      setIsDialogOpen(false);
+      setFormData({
+        date: "",
+        name: "",
+        type: "national",
+        description: "",
+        is_paid: true,
+      });
+      setSelectedDate(undefined);
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err.message || "Terjadi kesalahan saat menyimpan data",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
     }
-    setIsDialogOpen(false);
   };
 
   /**
-   * Handle delete confirmation
+   * Handle delete confirmation menggunakan Supabase
    */
-  const handleDelete = () => {
-    if (editingItem) {
-      setHolidays(holidays.filter(item => item.id !== editingItem.id));
+  const handleDelete = async () => {
+    if (!editingItem) return;
+
+    setIsSaving(true);
+
+    try {
+      const { error } = await deleteHoliday(editingItem.id);
+      if (error) throw new Error(error);
+
+      toast({
+        title: "Berhasil",
+        description: "Data hari libur berhasil dihapus",
+      });
+
       setIsDeleteDialogOpen(false);
       setEditingItem(null);
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err.message || "Terjadi kesalahan saat menghapus data",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -285,13 +268,13 @@ export function HolidayMaster() {
   /**
    * Get badge variant berdasarkan kategori
    */
-  const getCategoryBadgeVariant = (category: HolidayCategory) => {
-    switch (category) {
-      case "Nasional":
+  const getCategoryBadgeVariant = (type: HolidayCategory) => {
+    switch (type) {
+      case "national":
         return "default";
-      case "Cuti Bersama":
+      case "religious":
         return "secondary";
-      case "Perusahaan":
+      case "company":
         return "outline";
       default:
         return "default";
@@ -354,12 +337,21 @@ export function HolidayMaster() {
                     <TableHead>Kategori</TableHead>
                     <TableHead>Keterangan</TableHead>
                     <TableHead className="text-center">Dibayar</TableHead>
-                    <TableHead>Dibuat Oleh</TableHead>
+                    <TableHead>Dibuat Pada</TableHead>
                     <TableHead className="text-right">Aksi</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {sortedData.length === 0 ? (
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-8">
+                        <div className="flex items-center justify-center gap-2">
+                          <Loader2 className="h-5 w-5 animate-spin" />
+                          <span className="text-muted-foreground">Memuat data...</span>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : sortedData.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                         Tidak ada data ditemukan
@@ -378,23 +370,23 @@ export function HolidayMaster() {
                         </TableCell>
                         <TableCell>{item.name}</TableCell>
                         <TableCell>
-                          <Badge variant={getCategoryBadgeVariant(item.category)}>
-                            {item.category}
+                          <Badge variant={getCategoryBadgeVariant(item.type as HolidayCategory)}>
+                            {categoryLabels[item.type as HolidayCategory]}
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <div className="max-w-xs truncate" title={item.description}>
+                          <div className="max-w-xs truncate" title={item.description || ""}>
                             {item.description || "-"}
                           </div>
                         </TableCell>
                         <TableCell className="text-center">
-                          {item.isPaid ? (
+                          {item.is_paid ? (
                             <Badge variant="default" className="bg-green-600">Ya</Badge>
                           ) : (
                             <Badge variant="secondary">Tidak</Badge>
                           )}
                         </TableCell>
-                        <TableCell>{item.createdBy}</TableCell>
+                        <TableCell>{format(new Date(item.created_at), "dd MMM yyyy", { locale: id })}</TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center justify-end gap-2">
                             <PermissionGuard module="holiday_master" action="edit">
@@ -470,30 +462,30 @@ export function HolidayMaster() {
               <div className="grid grid-cols-2 gap-4">
                 {/* Kategori */}
                 <div className="grid gap-2">
-                  <Label htmlFor="category">Kategori *</Label>
+                  <Label htmlFor="type">Kategori *</Label>
                   <Select
-                    value={formData.category}
-                    onValueChange={(value) => handleInputChange("category", value)}
+                    value={formData.type}
+                    onValueChange={(value) => handleInputChange("type", value)}
                   >
-                    <SelectTrigger id="category">
+                    <SelectTrigger id="type">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Nasional">Nasional</SelectItem>
-                      <SelectItem value="Cuti Bersama">Cuti Bersama</SelectItem>
-                      <SelectItem value="Perusahaan">Perusahaan</SelectItem>
+                      <SelectItem value="national">Nasional</SelectItem>
+                      <SelectItem value="religious">Keagamaan</SelectItem>
+                      <SelectItem value="company">Perusahaan</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
                 {/* Status Dibayar */}
                 <div className="grid gap-2">
-                  <Label htmlFor="isPaid">Status Pembayaran *</Label>
+                  <Label htmlFor="is_paid">Status Pembayaran *</Label>
                   <Select
-                    value={formData.isPaid ? "true" : "false"}
-                    onValueChange={(value) => handleInputChange("isPaid", value === "true")}
+                    value={formData.is_paid ? "true" : "false"}
+                    onValueChange={(value) => handleInputChange("is_paid", value === "true")}
                   >
-                    <SelectTrigger id="isPaid">
+                    <SelectTrigger id="is_paid">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -528,13 +520,26 @@ export function HolidayMaster() {
             </div>
 
             <DialogFooter>
-              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+              <Button
+                variant="outline"
+                onClick={() => setIsDialogOpen(false)}
+                disabled={isSaving}
+              >
                 <X className="h-4 w-4 mr-2" />
                 Batal
               </Button>
-              <Button onClick={handleSave}>
-                <Save className="h-4 w-4 mr-2" />
-                Simpan
+              <Button onClick={handleSave} disabled={isSaving}>
+                {isSaving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Menyimpan...
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-4 w-4 mr-2" />
+                    Simpan
+                  </>
+                )}
               </Button>
             </DialogFooter>
           </DialogContent>

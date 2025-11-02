@@ -102,13 +102,13 @@ ALTER TABLE payroll_records ENABLE ROW LEVEL SECURITY;
 -- Users: Can view their own profile, admins can view all
 CREATE POLICY "Users can view own profile"
   ON users FOR SELECT
-  USING (auth.uid() = id OR is_admin());
+  USING (auth.uid() = users.id OR is_admin());
 
 -- Users: Can update their own profile
 CREATE POLICY "Users can update own profile"
   ON users FOR UPDATE
-  USING (auth.uid() = id)
-  WITH CHECK (auth.uid() = id);
+  USING (auth.uid() = users.id)
+  WITH CHECK (auth.uid() = users.id);
 
 -- Users: Only super_admin can insert/delete users
 CREATE POLICY "Super admin can insert users"
@@ -265,7 +265,7 @@ CREATE POLICY "View employees based on role"
   USING (
     is_admin() OR -- Admins can see all
     (get_user_role() = 'manager') OR -- Managers can see all
-    (employee_id = get_user_employee_id()) -- Employees can only see themselves
+    (employees.employee_id = get_user_employee_id()) -- Employees can only see themselves
   );
 
 -- Employees: Only admins can insert/update
@@ -414,7 +414,7 @@ CREATE POLICY "Employees can create own leave requests"
   WITH CHECK (
     EXISTS (
       SELECT 1 FROM employees e
-      WHERE e.id = employee_id
+      WHERE e.id = leave_requests.employee_id
       AND e.employee_id = get_user_employee_id()
     )
   );
