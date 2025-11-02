@@ -17,14 +17,14 @@
  */
 
 import { useState } from "react";
-import { 
-  Calendar, 
-  Plus, 
-  Pencil, 
-  Trash2, 
+import {
+  Calendar,
+  Plus,
+  Pencil,
+  Trash2,
   Search,
   Save,
-  X 
+  X
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -55,10 +55,13 @@ import { Label } from "./ui/label";
 import { Badge } from "./ui/badge";
 import { useAuth } from "../contexts/AuthContext";
 import { PermissionGuard } from "./PermissionGuard";
-import { Calendar as CalendarComponent } from "./ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
-import { format } from "date-fns";
-import { id } from "date-fns/locale";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "./ui/select";
 import {
   getWorkingDaysInMonth,
   getMonthNumber,
@@ -93,7 +96,6 @@ export function WorkingDaysMaster() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<WorkingDay | null>(null);
-  const [selectedDate, setSelectedDate] = useState<Date>();
 
   // State untuk form input
   const [formData, setFormData] = useState({
@@ -186,7 +188,6 @@ export function WorkingDaysMaster() {
       weekends: 0,
       effectiveDays: 0,
     });
-    setSelectedDate(undefined);
     setIsDialogOpen(true);
   };
 
@@ -248,55 +249,55 @@ export function WorkingDaysMaster() {
   };
 
   /**
-   * Handle pemilihan bulan dari kalender
+   * Handle pemilihan bulan dan tahun
    * Kalkulasi otomatis semua field berdasarkan bulan yang dipilih
    */
-  const handleMonthSelect = (date: Date | undefined) => {
-    if (date) {
-      setSelectedDate(date);
-      const monthName = format(date, "MMMM", { locale: id });
-      const year = date.getFullYear();
-      const month = date.getMonth() + 1; // 1-12
+  const calculateWorkingDays = (monthName: string, year: number) => {
+    if (!monthName) return;
 
-      // 1. Hitung total hari dalam bulan
-      const totalDays = new Date(year, month, 0).getDate();
+    const monthIndex = MONTH_NAMES_ID.indexOf(monthName);
+    if (monthIndex === -1) return;
 
-      // 2. Hitung weekend dalam bulan (Sabtu & Minggu)
-      let weekends = 0;
-      for (let day = 1; day <= totalDays; day++) {
-        const currentDate = new Date(year, month - 1, day);
-        const dayOfWeek = currentDate.getDay();
-        if (dayOfWeek === 0 || dayOfWeek === 6) {
-          weekends++;
-        }
+    const month = monthIndex + 1; // 1-12
+
+    // 1. Hitung total hari dalam bulan
+    const totalDays = new Date(year, month, 0).getDate();
+
+    // 2. Hitung weekend dalam bulan (hanya Minggu, Sabtu tetap kerja)
+    let weekends = 0;
+    for (let day = 1; day <= totalDays; day++) {
+      const currentDate = new Date(year, month - 1, day);
+      const dayOfWeek = currentDate.getDay();
+      if (dayOfWeek === 0) { // Hanya Minggu
+        weekends++;
       }
-
-      // 3. Hitung hari libur dari master data (excluding weekends)
-      const holidaysInMonth = MASTER_HOLIDAYS_2025.filter(holiday => {
-        const holidayDate = new Date(holiday.date);
-        const holidayMonth = holidayDate.getMonth() + 1;
-        const dayOfWeek = holidayDate.getDay();
-        // Hanya hitung libur yang bukan weekend
-        return holidayMonth === month && holidayDate.getFullYear() === year && dayOfWeek !== 0 && dayOfWeek !== 6;
-      }).length;
-
-      // 4. Hitung hari kerja = Total hari - Weekend
-      const workingDays = totalDays - weekends;
-
-      // 5. Hitung hari efektif = Hari kerja - Hari libur
-      const effectiveDays = workingDays - holidaysInMonth;
-
-      // Update form data dengan semua nilai yang sudah dikalkulasi
-      setFormData({
-        month: monthName,
-        year: year,
-        totalDays: totalDays,
-        workingDays: workingDays,
-        holidays: holidaysInMonth,
-        weekends: weekends,
-        effectiveDays: effectiveDays,
-      });
     }
+
+    // 3. Hitung hari libur dari master data (excluding Minggu)
+    const holidaysInMonth = MASTER_HOLIDAYS_2025.filter(holiday => {
+      const holidayDate = new Date(holiday.date);
+      const holidayMonth = holidayDate.getMonth() + 1;
+      const dayOfWeek = holidayDate.getDay();
+      // Hanya hitung libur yang bukan Minggu
+      return holidayMonth === month && holidayDate.getFullYear() === year && dayOfWeek !== 0;
+    }).length;
+
+    // 4. Hitung hari kerja = Total hari - Weekend
+    const workingDays = totalDays - weekends;
+
+    // 5. Hitung hari efektif = Hari kerja - Hari libur
+    const effectiveDays = workingDays - holidaysInMonth;
+
+    // Update form data dengan semua nilai yang sudah dikalkulasi
+    setFormData({
+      month: monthName,
+      year: year,
+      totalDays: totalDays,
+      workingDays: workingDays,
+      holidays: holidaysInMonth,
+      weekends: weekends,
+      effectiveDays: effectiveDays,
+    });
   };
 
   // Hitung total statistik tahunan
@@ -502,46 +503,52 @@ export function WorkingDaysMaster() {
             </DialogHeader>
 
             <div className="grid gap-4 py-4">
-              {/* Info Box */}
-              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-sm text-blue-900 font-bold mb-2">Cara Kerja:</p>
-                <p className="text-sm text-blue-900 mb-2">Pilih bulan yang ingin ditambahkan. Sistem akan otomatis menghitung:</p>
-                <ul className="list-disc list-inside text-sm text-blue-900 space-y-1">
-                  <li>Total hari dalam bulan</li>
-                  <li>Weekend (Sabtu & Minggu)</li>
-                  <li>Hari libur nasional (dari master data)</li>
-                  <li>Hari kerja efektif untuk payroll</li>
-                </ul>
-              </div>
+              {/* Pilih Bulan dan Tahun */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label className="text-base font-semibold">Bulan *</Label>
+                  <Select
+                    value={formData.month}
+                    onValueChange={(value: string) => calculateWorkingDays(value, formData.year)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih bulan..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {MONTH_NAMES_ID.map((month) => (
+                        <SelectItem key={month} value={month}>
+                          {month}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
 
-              {/* Pilih Bulan dengan Calendar */}
-              <div className="grid gap-2">
-                <Label className="text-base font-semibold">Pilih Bulan *</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className="justify-start h-12 text-base">
-                      <Calendar className="mr-2 h-5 w-5" />
-                      {selectedDate ? (
-                        format(selectedDate, "MMMM yyyy", { locale: id })
-                      ) : formData.month ? (
-                        `${formData.month} ${formData.year}`
-                      ) : (
-                        "Pilih bulan dan tahun..."
-                      )}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <CalendarComponent
-                      mode="single"
-                      selected={selectedDate}
-                      onSelect={handleMonthSelect}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-                <p className="text-sm text-muted-foreground">
-                  Setelah memilih bulan, semua nilai akan dikalkulasi otomatis
-                </p>
+                <div className="grid gap-2">
+                  <Label className="text-base font-semibold">Tahun *</Label>
+                  <Select
+                    value={formData.year.toString()}
+                    onValueChange={(value: string) => {
+                      const year = parseInt(value);
+                      if (formData.month) {
+                        calculateWorkingDays(formData.month, year);
+                      } else {
+                        setFormData({ ...formData, year });
+                      }
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih tahun..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - 2 + i).map((year) => (
+                        <SelectItem key={year} value={year.toString()}>
+                          {year}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
 
               {/* Hasil Kalkulasi Otomatis */}
