@@ -39,7 +39,7 @@
  */
 
 import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
-import { LayoutDashboard, Users, FileText, Settings as SettingsIcon, X, UserCog, Award, Layers, Briefcase, Receipt, ChevronDown, ChevronRight, Database, Calculator, Shield, ShieldCheck, Calendar, CalendarDays, ClipboardCheck, Umbrella, Gift, ArrowRightLeft, TrendingUp, BarChart3, DollarSign } from 'lucide-react';
+import { LayoutDashboard, Users, FileText, Settings as SettingsIcon, X, UserCog, Award, Layers, Briefcase, Receipt, ChevronDown, ChevronRight, Database, Calculator, Shield, ShieldCheck, Calendar, CalendarDays, ClipboardCheck, Umbrella, Gift, ArrowRightLeft, TrendingUp, BarChart3, DollarSign, ClipboardList } from 'lucide-react';
 import { SigmaLogo } from './SigmaLogo';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './ui/collapsible';
@@ -51,7 +51,7 @@ import { useAuth } from '../contexts/AuthContext';
  */
 interface SidebarProps {
   activeView: string;
-  onViewChange: (view: 'dashboard' | 'payroll-view' | 'tax-worksheet' | 'annual-payroll' | 'hrm' | 'employee-transfer' | 'division' | 'position' | 'wage-master' | 'premium' | 'tax-master' | 'working-days' | 'holidays' | 'attendance' | 'leave' | 'employees' | 'processing' | 'reports' | 'engagement' | 'settings' | 'user-management' | 'role-management') => void;
+  onViewChange: (view: 'dashboard' | 'payroll-view' | 'tax-worksheet' | 'annual-payroll' | 'hrm' | 'employee-transfer' | 'division' | 'position' | 'wage-master' | 'premium' | 'tax-master' | 'working-days' | 'holidays' | 'attendance' | 'leave' | 'employees' | 'processing' | 'reports' | 'presensi-report' | 'engagement' | 'settings' | 'user-management' | 'role-management') => void;
   isOpen: boolean;
   onClose: () => void;
   collapsed: boolean;
@@ -215,6 +215,7 @@ export function Sidebar({ activeView, onViewChange, isOpen, onClose, collapsed }
   const payrollReportsItems = [
     { id: 'payroll-view', label: 'Buku Gaji', icon: Receipt, module: 'payroll-view' },
     { id: 'tax-worksheet', label: 'Tax Worksheet', icon: Calculator, module: 'tax-worksheet' },
+    { id: 'presensi-report', label: 'Presensi', icon: ClipboardList, module: 'presensi-report' },
   ];
 
   /**

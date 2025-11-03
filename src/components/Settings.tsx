@@ -5,7 +5,8 @@ import { Label } from './ui/label';
 import { Switch } from './ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { CheckCircle2, XCircle, Code2, Palette, Database, FileText, Users, Shield, BarChart3, Home } from 'lucide-react';
+import { CheckCircle2, XCircle, Code2, Palette, Database, FileText, Users, Shield, BarChart3, Home, Bug } from 'lucide-react';
+import { AuthDebugger } from './AuthDebugger';
 
 interface SettingsProps {
   onNavigate?: (view: string) => void;
@@ -79,12 +80,13 @@ export function Settings({ onNavigate }: SettingsProps) {
       </div>
 
       <Tabs defaultValue="general" className="space-y-4 md:space-y-6">
-        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5">
+        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-6">
           <TabsTrigger value="general">Umum</TabsTrigger>
           <TabsTrigger value="payroll">Aturan Penggajian</TabsTrigger>
           <TabsTrigger value="notifications">Notifikasi</TabsTrigger>
           <TabsTrigger value="quick-access">Akses Cepat</TabsTrigger>
           <TabsTrigger value="developer">Developer</TabsTrigger>
+          <TabsTrigger value="troubleshooting">Troubleshooting</TabsTrigger>
         </TabsList>
 
         <TabsContent value="general">
@@ -462,6 +464,27 @@ export function Settings({ onNavigate }: SettingsProps) {
               </div>
             </div>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="troubleshooting">
+          <div className="space-y-4">
+            <Card className="shadow-sm bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900">
+              <div className="p-6">
+                <div className="flex items-start gap-3">
+                  <Bug className="w-5 h-5 text-amber-600 mt-0.5" />
+                  <div>
+                    <h3 className="text-amber-900 dark:text-amber-100 mb-1">Authentication Troubleshooting</h3>
+                    <p className="text-sm text-amber-700 dark:text-amber-300">
+                      Gunakan tool di bawah ini jika Anda mengalami masalah login, terutama di browser Chrome
+                      (harus clear cookies setiap refresh).
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            <AuthDebugger />
+          </div>
         </TabsContent>
       </Tabs>
     </div>

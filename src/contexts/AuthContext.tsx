@@ -37,6 +37,7 @@ import {
 } from "react";
 import { supabase } from "../utils/supabase/client";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
+import { clearAuthStorage } from "../utils/auth-cleanup";
 
 /**
  * User role types yang tersedia dalam sistem
@@ -346,6 +347,13 @@ const ROLE_PERMISSIONS: Record<
       canEdit: true,
       canDelete: true,
     },
+    presensi_report: {
+      module: "presensi_report",
+      canView: true,
+      canCreate: true,
+      canEdit: true,
+      canDelete: true,
+    },
     engagement: {
       module: "engagement",
       canView: true,
@@ -518,6 +526,13 @@ const ROLE_PERMISSIONS: Record<
     },
     payroll_reports: {
       module: "payroll_reports",
+      canView: true,
+      canCreate: true,
+      canEdit: true,
+      canDelete: true,
+    },
+    presensi_report: {
+      module: "presensi_report",
       canView: true,
       canCreate: true,
       canEdit: true,
@@ -941,6 +956,7 @@ const MENU_MODULE_MAP: Record<string, string> = {
   employees: "employee_payroll",
   processing: "payroll_processing",
   reports: "payroll_reports",
+  "presensi-report": "presensi_report",
   engagement: "engagement",
   settings: "settings",
   "user-management": "user_management",
@@ -974,7 +990,16 @@ export function AuthProvider({
    */
   useEffect(() => {
     // Check active sessions and sets the user
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session }, error: sessionError }) => {
+      // If there's an error getting session, clear any stale data
+      if (sessionError) {
+        console.error('Session error:', sessionError);
+        await supabase.auth.signOut();
+        setUser(null);
+        setIsLoading(false);
+        return;
+      }
+
       if (session?.user) {
         // Fetch user data from our users table with role
         const { data: userData, error } = await supabase
@@ -998,38 +1023,73 @@ export function AuthProvider({
             lastLogin: new Date().toISOString(),
           };
           setUser(appUser);
+        } else if (error) {
+          // If we can't fetch user data, clear the session
+          console.error('Error fetching user data on session restore:', error);
+          await supabase.auth.signOut();
+          setUser(null);
         }
       }
+      setIsLoading(false);
+    }).catch(async (err) => {
+      // Catch any unexpected errors and clear session
+      console.error('Unexpected session restore error:', err);
+      await supabase.auth.signOut();
+      setUser(null);
       setIsLoading(false);
     });
 
     // Listen for changes on auth state (sign in, sign out, etc.)
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (session?.user) {
-        // Fetch user data from our users table with role
-        const { data: userData, error } = await supabase
-          .from('users')
-          .select(`
-            *,
-            role:roles!role_id(code, name)
-          `)
-          .eq('id', session.user.id)
-          .single();
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth state changed:', event);
 
-        if (userData && !error && userData.role) {
-          const appUser: User = {
-            id: userData.id,
-            name: userData.full_name,
-            email: userData.email,
-            role: userData.role.code as UserRole,
-            employeeId: userData.employee_id || undefined,
-            status: 'active',
-            createdAt: userData.created_at,
-            lastLogin: new Date().toISOString(),
-          };
-          setUser(appUser);
+      // Handle sign out events
+      if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+        setUser(null);
+        return;
+      }
+
+      // Handle token refresh errors
+      if (event === 'TOKEN_REFRESHED') {
+        console.log('Token refreshed successfully');
+      }
+
+      if (session?.user) {
+        try {
+          // Fetch user data from our users table with role
+          const { data: userData, error } = await supabase
+            .from('users')
+            .select(`
+              *,
+              role:roles!role_id(code, name)
+            `)
+            .eq('id', session.user.id)
+            .single();
+
+          if (userData && !error && userData.role) {
+            const appUser: User = {
+              id: userData.id,
+              name: userData.full_name,
+              email: userData.email,
+              role: userData.role.code as UserRole,
+              employeeId: userData.employee_id || undefined,
+              status: 'active',
+              createdAt: userData.created_at,
+              lastLogin: new Date().toISOString(),
+            };
+            setUser(appUser);
+          } else if (error) {
+            console.error('Error fetching user data on auth change:', error);
+            // Clear session if we can't fetch user data
+            await supabase.auth.signOut();
+            setUser(null);
+          }
+        } catch (err) {
+          console.error('Unexpected error in auth state change:', err);
+          await supabase.auth.signOut();
+          setUser(null);
         }
       } else {
         setUser(null);
@@ -1127,11 +1187,26 @@ export function AuthProvider({
    */
   const logout = async () => {
     try {
-      await supabase.auth.signOut();
+      console.log('🚪 Logging out...');
+
+      // Sign out from Supabase
+      const { error } = await supabase.auth.signOut();
+
+      if (error) {
+        console.error('Supabase signOut error:', error);
+      }
+
+      // Clear any remaining auth storage (important for Chrome)
+      clearAuthStorage();
+
+      // Clear user state
       setUser(null);
+
+      console.log('✅ Logout successful');
     } catch (error) {
-      console.error('Logout error:', error);
-      // Still clear user state even if signOut fails
+      console.error('❌ Unexpected logout error:', error);
+      // Still clear user state and storage even if signOut fails
+      clearAuthStorage();
       setUser(null);
     }
   };

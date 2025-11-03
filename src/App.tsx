@@ -45,6 +45,7 @@ import { TaxMaster } from './components/TaxMaster';
 import { EmployeePayroll } from './components/EmployeePayroll';
 import { PayrollProcessing } from './components/PayrollProcessing';
 import { PayrollReports } from './components/PayrollReports';
+import { PresensiReport } from './components/PresensiReport';
 import { PremiumMaster } from './components/PremiumMaster';
 import { WorkingDaysMaster } from './components/WorkingDaysMaster';
 import { HolidayMaster } from './components/HolidayMaster';
@@ -66,7 +67,7 @@ import { Toaster } from './components/ui/sonner';
  * Type definition untuk semua view/halaman yang tersedia dalam aplikasi
  * #TypeDefinition #ViewTypes
  */
-type ViewType = 'dashboard' | 'payroll-view' | 'tax-worksheet' | 'annual-payroll' | 'hrm' | 'employee-transfer' | 'division' | 'position' | 'wage-master' | 'employees' | 'processing' | 'reports' | 'engagement' | 'premium' | 'tax-master' | 'working-days' | 'holidays' | 'attendance' | 'leave' | 'settings' | 'user-management' | 'role-management' | 'profile' | 'account-settings' | 'design-reference' | 'database-seeder';
+type ViewType = 'dashboard' | 'payroll-view' | 'tax-worksheet' | 'annual-payroll' | 'hrm' | 'employee-transfer' | 'division' | 'position' | 'wage-master' | 'employees' | 'processing' | 'reports' | 'presensi-report' | 'engagement' | 'premium' | 'tax-master' | 'working-days' | 'holidays' | 'attendance' | 'leave' | 'settings' | 'user-management' | 'role-management' | 'profile' | 'account-settings' | 'design-reference' | 'database-seeder';
 
 /**
  * ==========================================================================
@@ -229,6 +230,11 @@ function MainApp() {
           {activeView === 'reports' && (
             <PermissionGuard module="payroll_reports">
               <PayrollReports />
+            </PermissionGuard>
+          )}
+          {activeView === 'presensi-report' && (
+            <PermissionGuard module="presensi_report">
+              <PresensiReport />
             </PermissionGuard>
           )}
           {activeView === 'premium' && (
