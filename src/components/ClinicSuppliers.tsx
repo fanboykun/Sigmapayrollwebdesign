@@ -252,145 +252,6 @@ export function ClinicSuppliers() {
       }
     }
   };
-  const SupplierFormFields = () => (
-    <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
-      {/* Row 1: Code & Name */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="supplier_code">Kode Supplier *</Label>
-          <Input
-            id="supplier_code"
-            value={formData.supplier_code}
-            onChange={(e) => handleInputChange('supplier_code', e.target.value)}
-            placeholder="SUP001"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="name">Nama Supplier *</Label>
-          <Input
-            id="name"
-            value={formData.name}
-            onChange={(e) => handleInputChange('name', e.target.value)}
-            placeholder="PT Kimia Farma"
-          />
-        </div>
-      </div>
-
-      {/* Row 2: Contact Person & Phone */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="contact_person">Contact Person</Label>
-          <Input
-            id="contact_person"
-            value={formData.contact_person}
-            onChange={(e) => handleInputChange('contact_person', e.target.value)}
-            placeholder="Nama PIC"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="phone">No. Telepon</Label>
-          <Input
-            id="phone"
-            value={formData.phone}
-            onChange={(e) => handleInputChange('phone', e.target.value)}
-            placeholder="021-1234567"
-          />
-        </div>
-      </div>
-
-      {/* Row 3: Email */}
-      <div className="space-y-2">
-        <Label htmlFor="email">Email</Label>
-        <Input
-          id="email"
-          type="email"
-          value={formData.email}
-          onChange={(e) => handleInputChange('email', e.target.value)}
-          placeholder="supplier@example.com"
-        />
-      </div>
-
-      {/* Row 4: Address */}
-      <div className="space-y-2">
-        <Label htmlFor="address">Alamat</Label>
-        <Textarea
-          id="address"
-          value={formData.address}
-          onChange={(e) => handleInputChange('address', e.target.value)}
-          placeholder="Alamat lengkap supplier..."
-          rows={3}
-        />
-      </div>
-
-      {/* Row 5: City & Postal Code */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="city">Kota</Label>
-          <Input
-            id="city"
-            value={formData.city}
-            onChange={(e) => handleInputChange('city', e.target.value)}
-            placeholder="Jakarta"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="postal_code">Kode Pos</Label>
-          <Input
-            id="postal_code"
-            value={formData.postal_code}
-            onChange={(e) => handleInputChange('postal_code', e.target.value)}
-            placeholder="12345"
-          />
-        </div>
-      </div>
-
-      {/* Row 6: Payment Terms */}
-      <div className="space-y-2">
-        <Label htmlFor="payment_terms">Termin Pembayaran</Label>
-        <Select
-          value={formData.payment_terms}
-          onValueChange={(value) => handleInputChange('payment_terms', value)}
-        >
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {PAYMENT_TERMS.map(term => (
-              <SelectItem key={term} value={term}>{term}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Row 7: Notes */}
-      <div className="space-y-2">
-        <Label htmlFor="notes">Catatan</Label>
-        <Textarea
-          id="notes"
-          value={formData.notes}
-          onChange={(e) => handleInputChange('notes', e.target.value)}
-          placeholder="Catatan tambahan tentang supplier..."
-          rows={3}
-        />
-      </div>
-
-      {/* Row 8: Active Status */}
-      <div className="flex items-center justify-between pt-2 border-t">
-        <div className="space-y-0.5">
-          <Label>Status Aktif</Label>
-          <p className="text-sm text-muted-foreground">
-            Supplier dapat digunakan dalam sistem
-          </p>
-        </div>
-        <Switch
-          checked={formData.is_active}
-          onCheckedChange={(checked) => handleInputChange('is_active', checked)}
-        />
-      </div>
-    </div>
-  );
-
-
   return (
     <div className="flex-1 flex flex-col h-full">
       {/* Header */}
@@ -410,23 +271,167 @@ export function ClinicSuppliers() {
               <Plus className="w-4 h-4 mr-2" />
               Tambah Supplier
             </Button>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
               <DialogHeader>
                 <DialogTitle>Tambah Supplier Baru</DialogTitle>
                 <DialogDescription>
                   Lengkapi form di bawah untuk menambahkan supplier baru
                 </DialogDescription>
               </DialogHeader>
-              <SupplierFormFields />
-              <DialogFooter>
-                <Button variant="outline" onClick={() => {
-                  setIsAddDialogOpen(false);
-                  resetForm();
-                }}>
+
+              {/* Form Fields - Scrollable */}
+              <div className="flex-1 overflow-y-auto pr-2 space-y-4 max-h-[calc(85vh-200px)]">
+                {/* Row 1: Code & Name */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="supplier_code">Kode Supplier *</Label>
+                    <Input
+                      id="supplier_code"
+                      value={formData.supplier_code}
+                      onChange={(e) => handleInputChange('supplier_code', e.target.value)}
+                      placeholder="SUP001"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Nama Supplier *</Label>
+                    <Input
+                      id="name"
+                      value={formData.name}
+                      onChange={(e) => handleInputChange('name', e.target.value)}
+                      placeholder="PT Kimia Farma"
+                    />
+                  </div>
+                </div>
+
+                {/* Row 2: Contact Person & Phone */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="contact_person">Contact Person</Label>
+                    <Input
+                      id="contact_person"
+                      value={formData.contact_person}
+                      onChange={(e) => handleInputChange('contact_person', e.target.value)}
+                      placeholder="Nama PIC"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">No. Telepon</Label>
+                    <Input
+                      id="phone"
+                      value={formData.phone}
+                      onChange={(e) => handleInputChange('phone', e.target.value)}
+                      placeholder="021-1234567"
+                    />
+                  </div>
+                </div>
+
+                {/* Row 3: Email */}
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => handleInputChange('email', e.target.value)}
+                    placeholder="supplier@example.com"
+                  />
+                </div>
+
+                {/* Row 4: Address */}
+                <div className="space-y-2">
+                  <Label htmlFor="address">Alamat</Label>
+                  <Textarea
+                    id="address"
+                    value={formData.address}
+                    onChange={(e) => handleInputChange('address', e.target.value)}
+                    placeholder="Alamat lengkap supplier..."
+                    rows={3}
+                  />
+                </div>
+
+                {/* Row 5: City & Postal Code */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="city">Kota</Label>
+                    <Input
+                      id="city"
+                      value={formData.city}
+                      onChange={(e) => handleInputChange('city', e.target.value)}
+                      placeholder="Jakarta"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="postal_code">Kode Pos</Label>
+                    <Input
+                      id="postal_code"
+                      value={formData.postal_code}
+                      onChange={(e) => handleInputChange('postal_code', e.target.value)}
+                      placeholder="12345"
+                    />
+                  </div>
+                </div>
+
+                {/* Row 6: Payment Terms */}
+                <div className="space-y-2">
+                  <Label htmlFor="payment_terms">Termin Pembayaran</Label>
+                  <Select
+                    value={formData.payment_terms}
+                    onValueChange={(value) => handleInputChange('payment_terms', value)}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PAYMENT_TERMS.map(term => (
+                        <SelectItem key={term} value={term}>{term}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Row 7: Notes */}
+                <div className="space-y-2">
+                  <Label htmlFor="notes">Catatan</Label>
+                  <Textarea
+                    id="notes"
+                    value={formData.notes}
+                    onChange={(e) => handleInputChange('notes', e.target.value)}
+                    placeholder="Catatan tambahan tentang supplier..."
+                    rows={3}
+                  />
+                </div>
+
+                {/* Row 8: Active Status */}
+                <div className="flex items-center justify-between pt-2 border-t">
+                  <div className="space-y-0.5">
+                    <Label>Status Aktif</Label>
+                    <p className="text-sm text-muted-foreground">
+                      Supplier dapat digunakan dalam sistem
+                    </p>
+                  </div>
+                  <Switch
+                    checked={formData.is_active}
+                    onCheckedChange={(checked) => handleInputChange('is_active', checked)}
+                  />
+                </div>
+              </div>
+
+              <DialogFooter className="mt-4 shrink-0 pt-4 pb-2 border-t bg-white sticky bottom-0 gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setIsAddDialogOpen(false);
+                    resetForm();
+                  }}
+                  className="border-gray-300"
+                >
                   Batal
                 </Button>
-                <Button onClick={handleAddSupplier} className="bg-blue-600 hover:bg-blue-700">
-                  Simpan
+                <Button
+                  onClick={handleAddSupplier}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  Simpan Supplier
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -601,24 +606,168 @@ export function ClinicSuppliers() {
 
       {/* Edit Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col overflow-hidden">
           <DialogHeader>
             <DialogTitle>Edit Supplier</DialogTitle>
             <DialogDescription>
               Update informasi supplier {selectedSupplier?.name}
             </DialogDescription>
           </DialogHeader>
-          <SupplierFormFields />
-          <DialogFooter>
-            <Button variant="outline" onClick={() => {
-              setIsEditDialogOpen(false);
-              resetForm();
-              setSelectedSupplier(null);
-            }}>
+
+          {/* Form Fields - Scrollable */}
+          <div className="flex-1 overflow-y-auto pr-2 space-y-4 max-h-[calc(85vh-200px)]">
+            {/* Row 1: Code & Name */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit_supplier_code">Kode Supplier *</Label>
+                <Input
+                  id="edit_supplier_code"
+                  value={formData.supplier_code}
+                  onChange={(e) => handleInputChange('supplier_code', e.target.value)}
+                  placeholder="SUP001"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit_name">Nama Supplier *</Label>
+                <Input
+                  id="edit_name"
+                  value={formData.name}
+                  onChange={(e) => handleInputChange('name', e.target.value)}
+                  placeholder="PT Kimia Farma"
+                />
+              </div>
+            </div>
+
+            {/* Row 2: Contact Person & Phone */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit_contact_person">Contact Person</Label>
+                <Input
+                  id="edit_contact_person"
+                  value={formData.contact_person}
+                  onChange={(e) => handleInputChange('contact_person', e.target.value)}
+                  placeholder="Nama PIC"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit_phone">No. Telepon</Label>
+                <Input
+                  id="edit_phone"
+                  value={formData.phone}
+                  onChange={(e) => handleInputChange('phone', e.target.value)}
+                  placeholder="021-1234567"
+                />
+              </div>
+            </div>
+
+            {/* Row 3: Email */}
+            <div className="space-y-2">
+              <Label htmlFor="edit_email">Email</Label>
+              <Input
+                id="edit_email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => handleInputChange('email', e.target.value)}
+                placeholder="supplier@example.com"
+              />
+            </div>
+
+            {/* Row 4: Address */}
+            <div className="space-y-2">
+              <Label htmlFor="edit_address">Alamat</Label>
+              <Textarea
+                id="edit_address"
+                value={formData.address}
+                onChange={(e) => handleInputChange('address', e.target.value)}
+                placeholder="Alamat lengkap supplier..."
+                rows={3}
+              />
+            </div>
+
+            {/* Row 5: City & Postal Code */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit_city">Kota</Label>
+                <Input
+                  id="edit_city"
+                  value={formData.city}
+                  onChange={(e) => handleInputChange('city', e.target.value)}
+                  placeholder="Jakarta"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit_postal_code">Kode Pos</Label>
+                <Input
+                  id="edit_postal_code"
+                  value={formData.postal_code}
+                  onChange={(e) => handleInputChange('postal_code', e.target.value)}
+                  placeholder="12345"
+                />
+              </div>
+            </div>
+
+            {/* Row 6: Payment Terms */}
+            <div className="space-y-2">
+              <Label htmlFor="edit_payment_terms">Termin Pembayaran</Label>
+              <Select
+                value={formData.payment_terms}
+                onValueChange={(value) => handleInputChange('payment_terms', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PAYMENT_TERMS.map(term => (
+                    <SelectItem key={term} value={term}>{term}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Row 7: Notes */}
+            <div className="space-y-2">
+              <Label htmlFor="edit_notes">Catatan</Label>
+              <Textarea
+                id="edit_notes"
+                value={formData.notes}
+                onChange={(e) => handleInputChange('notes', e.target.value)}
+                placeholder="Catatan tambahan tentang supplier..."
+                rows={3}
+              />
+            </div>
+
+            {/* Row 8: Active Status */}
+            <div className="flex items-center justify-between pt-2 border-t">
+              <div className="space-y-0.5">
+                <Label>Status Aktif</Label>
+                <p className="text-sm text-muted-foreground">
+                  Supplier dapat digunakan dalam sistem
+                </p>
+              </div>
+              <Switch
+                checked={formData.is_active}
+                onCheckedChange={(checked) => handleInputChange('is_active', checked)}
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="mt-4 shrink-0 pt-4 pb-2 border-t bg-white sticky bottom-0 gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsEditDialogOpen(false);
+                resetForm();
+                setSelectedSupplier(null);
+              }}
+              className="border-gray-300"
+            >
               Batal
             </Button>
-            <Button onClick={handleUpdateSupplier} className="bg-blue-600 hover:bg-blue-700">
-              Update
+            <Button
+              onClick={handleUpdateSupplier}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              Update Supplier
             </Button>
           </DialogFooter>
         </DialogContent>

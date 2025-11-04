@@ -23,7 +23,7 @@ import { Button } from "./button";
 import { Input } from "./input";
 import { Popover, PopoverContent, PopoverTrigger } from "./popover";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./select";
-import { DayPicker } from "react-day-picker@8.10.1";
+import { DayPicker } from "react-day-picker";
 import { buttonVariants } from "./button";
 
 export interface DatePickerProps {

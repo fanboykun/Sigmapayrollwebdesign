@@ -11,7 +11,7 @@ import { Search, Edit2, Trash2, Plus, Receipt } from 'lucide-react';
 import { Switch } from './ui/switch';
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from './ui/alert-dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
-import { toast } from 'sonner@2.0.3';
+import { toast } from 'sonner';
 
 interface PTKP {
   id: string;

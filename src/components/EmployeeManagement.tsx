@@ -34,6 +34,17 @@ import {
   Users,
   UserMinus,
   UserCheck,
+  User,
+  Briefcase,
+  CreditCard,
+  Shield,
+  Package,
+  FileText,
+  Phone,
+  MapPin,
+  Calendar,
+  Heart,
+  Users2,
 } from "lucide-react";
 import { format } from "date-fns";
 import { id } from "date-fns/locale";
@@ -41,7 +52,7 @@ import { MASTER_DIVISIONS } from "../shared/divisionData";
 import { Recruitment } from "./Recruitment";
 import { Termination } from "./Termination";
 import { Probasi } from "./Probasi";
-import { supabase } from "../lib/supabaseClient";
+import { supabase } from "../utils/supabase/client";
 import { toast } from "sonner";
 
 interface Asset {
@@ -81,6 +92,14 @@ interface Employee {
   drivingLicenseExpiry?: Date; // SIM expiry date
   nationality?: string; // Nationality
   bloodGroup?: string; // Blood type (A+, B+, O+, AB+, etc)
+  // BPJS fields
+  bpjsKesehatanNumber?: string;
+  bpjsKetenagakerjaanNumber?: string;
+  bpjsTaxStatus?: string;
+  spouseName?: string;
+  child1Name?: string;
+  child2Name?: string;
+  child3Name?: string;
   assets?: Asset[];
 }
 
@@ -97,9 +116,7 @@ export function EmployeeManagement() {
   );
   const [birthDate, setBirthDate] = useState<Date | undefined>();
   const [joinDate, setJoinDate] = useState<Date | undefined>();
-  const [drivingLicenseExpiry, setDrivingLicenseExpiry] = useState<
-    Date | undefined
-  >();
+  const [drivingLicenseExpiry, setDrivingLicenseExpiry] = useState<Date | undefined>();
   const [activeTab, setActiveTab] = useState("personal");
 
   // Form state
@@ -125,6 +142,14 @@ export function EmployeeManagement() {
     drivingLicenseNumber: "",
     nationality: "Indonesian",
     bloodGroup: "",
+    // BPJS fields
+    bpjsKesehatanNumber: "",
+    bpjsKetenagakerjaanNumber: "",
+    bpjsTaxStatus: "",
+    spouseName: "",
+    child1Name: "",
+    child2Name: "",
+    child3Name: "",
   });
 
   // Asset state
@@ -207,6 +232,13 @@ export function EmployeeManagement() {
         drivingLicenseExpiry: undefined,
         nationality: undefined,
         bloodGroup: undefined,
+        bpjsKesehatanNumber: emp.bpjs_kesehatan_number,
+        bpjsKetenagakerjaanNumber: emp.bpjs_ketenagakerjaan_number,
+        bpjsTaxStatus: emp.bpjs_tax_status,
+        spouseName: emp.spouse_name,
+        child1Name: emp.child1_name,
+        child2Name: emp.child2_name,
+        child3Name: emp.child3_name,
         assets: [],
       }));
 
@@ -259,6 +291,13 @@ export function EmployeeManagement() {
       drivingLicenseNumber: "",
       nationality: "Indonesian",
       bloodGroup: "",
+      bpjsKesehatanNumber: "",
+      bpjsKetenagakerjaanNumber: "",
+      bpjsTaxStatus: "",
+      spouseName: "",
+      child1Name: "",
+      child2Name: "",
+      child3Name: "",
     });
     setBirthDate(undefined);
     setJoinDate(undefined);
@@ -313,6 +352,13 @@ export function EmployeeManagement() {
         emergency_contact_name: formData.emergencyContact,
         emergency_contact_phone: formData.emergencyPhone,
         npwp: formData.nationalId,
+        bpjs_kesehatan_number: formData.bpjsKesehatanNumber,
+        bpjs_ketenagakerjaan_number: formData.bpjsKetenagakerjaanNumber,
+        bpjs_tax_status: formData.bpjsTaxStatus,
+        spouse_name: formData.spouseName,
+        child1_name: formData.child1Name,
+        child2_name: formData.child2Name,
+        child3_name: formData.child3Name,
       };
 
       const { data, error } = await supabase
@@ -360,6 +406,13 @@ export function EmployeeManagement() {
       drivingLicenseNumber: employee.drivingLicenseNumber || "",
       nationality: employee.nationality || "Indonesian",
       bloodGroup: employee.bloodGroup || "",
+      bpjsKesehatanNumber: employee.bpjsKesehatanNumber || "",
+      bpjsKetenagakerjaanNumber: employee.bpjsKetenagakerjaanNumber || "",
+      bpjsTaxStatus: employee.bpjsTaxStatus || "",
+      spouseName: employee.spouseName || "",
+      child1Name: employee.child1Name || "",
+      child2Name: employee.child2Name || "",
+      child3Name: employee.child3Name || "",
     });
     setBirthDate(employee.birthDate);
     setJoinDate(employee.joinDate);
@@ -397,6 +450,13 @@ export function EmployeeManagement() {
         emergency_contact_name: formData.emergencyContact,
         emergency_contact_phone: formData.emergencyPhone,
         npwp: formData.nationalId,
+        bpjs_kesehatan_number: formData.bpjsKesehatanNumber,
+        bpjs_ketenagakerjaan_number: formData.bpjsKetenagakerjaanNumber,
+        bpjs_tax_status: formData.bpjsTaxStatus,
+        spouse_name: formData.spouseName,
+        child1_name: formData.child1Name,
+        child2_name: formData.child2Name,
+        child3_name: formData.child3Name,
       };
 
       const { error } = await supabase
@@ -533,356 +593,567 @@ export function EmployeeManagement() {
   const employeeFormFields = useMemo(
     () => (
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="personal">Data Pribadi</TabsTrigger>
-          <TabsTrigger value="employment">Data Pekerjaan</TabsTrigger>
-          <TabsTrigger value="financial">Data Keuangan</TabsTrigger>
-          <TabsTrigger value="assets">Aset</TabsTrigger>
+        <TabsList className="inline-flex h-auto bg-muted/50 p-1 gap-1 w-full">
+          <TabsTrigger 
+            value="personal" 
+            className="flex items-center justify-center gap-1 data-[state=active]:bg-background data-[state=active]:shadow-sm px-2 py-2 flex-1 min-w-0"
+          >
+            <User className="h-3.5 w-3.5 flex-shrink-0" />
+            <span className="text-[11px] truncate">Pribadi</span>
+          </TabsTrigger>
+          <TabsTrigger 
+            value="employment"
+            className="flex items-center justify-center gap-1 data-[state=active]:bg-background data-[state=active]:shadow-sm px-2 py-2 flex-1 min-w-0"
+          >
+            <Briefcase className="h-3.5 w-3.5 flex-shrink-0" />
+            <span className="text-[11px] truncate">Pekerjaan</span>
+          </TabsTrigger>
+          <TabsTrigger 
+            value="financial"
+            className="flex items-center justify-center gap-1 data-[state=active]:bg-background data-[state=active]:shadow-sm px-2 py-2 flex-1 min-w-0"
+          >
+            <CreditCard className="h-3.5 w-3.5 flex-shrink-0" />
+            <span className="text-[11px] truncate">Keuangan</span>
+          </TabsTrigger>
+          <TabsTrigger 
+            value="bpjs"
+            className="flex items-center justify-center gap-1 data-[state=active]:bg-background data-[state=active]:shadow-sm px-2 py-2 flex-1 min-w-0"
+          >
+            <Shield className="h-3.5 w-3.5 flex-shrink-0" />
+            <span className="text-[11px] truncate">BPJS</span>
+          </TabsTrigger>
+          <TabsTrigger 
+            value="assets"
+            className="flex items-center justify-center gap-1 data-[state=active]:bg-background data-[state=active]:shadow-sm px-2 py-2 flex-1 min-w-0"
+          >
+            <Package className="h-3.5 w-3.5 flex-shrink-0" />
+            <span className="text-[11px] truncate">Aset</span>
+          </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="personal" className="space-y-4 mt-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="employeeId">Nomor Karyawan *</Label>
-              <Input
-                id="employeeId"
-                value={formData.employeeId}
-                onChange={(e) =>
-                  handleInputChange("employeeId", e.target.value)
-                }
-                placeholder="1504951"
-              />
+        <TabsContent value="personal" className="space-y-6 mt-6">
+          {/* Informasi Identitas */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 pb-2 border-b">
+              <FileText className="h-4 w-4 text-muted-foreground" />
+              <h4 className="text-sm">Informasi Identitas</h4>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="fullName">Nama Lengkap *</Label>
-              <Input
-                id="fullName"
-                value={formData.fullName}
-                onChange={(e) => handleInputChange("fullName", e.target.value)}
-                placeholder="Imran I"
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="employeeId">Nomor Karyawan *</Label>
+                <Input
+                  id="employeeId"
+                  value={formData.employeeId}
+                  onChange={(e) =>
+                    handleInputChange("employeeId", e.target.value)
+                  }
+                  placeholder="1504951"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="fullName">Nama Lengkap *</Label>
+                <Input
+                  id="fullName"
+                  value={formData.fullName}
+                  onChange={(e) => handleInputChange("fullName", e.target.value)}
+                  placeholder="Imran I"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="nationalId">National ID / KTP *</Label>
+                <Input
+                  id="nationalId"
+                  value={formData.nationalId}
+                  onChange={(e) =>
+                    handleInputChange("nationalId", e.target.value)
+                  }
+                  placeholder="02.1504.101085.0001"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="nationality">Kewarganegaraan</Label>
+                <Select
+                  value={formData.nationality}
+                  onValueChange={(value) =>
+                    handleInputChange("nationality", value)
+                  }
+                >
+                  <SelectTrigger id="nationality">
+                    <SelectValue placeholder="Pilih kewarganegaraan" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Indonesian">Indonesian</SelectItem>
+                    <SelectItem value="Malaysian">Malaysian</SelectItem>
+                    <SelectItem value="Singaporean">Singaporean</SelectItem>
+                    <SelectItem value="Other">Lainnya</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="nationalId">National ID / KTP *</Label>
-              <Input
-                id="nationalId"
-                value={formData.nationalId}
-                onChange={(e) =>
-                  handleInputChange("nationalId", e.target.value)
-                }
-                placeholder="02.1504.101085.0001"
-              />
+          {/* Kontak */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 pb-2 border-b">
+              <Phone className="h-4 w-4 text-muted-foreground" />
+              <h4 className="text-sm">Informasi Kontak</h4>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="nationality">Kewarganegaraan</Label>
-              <Select
-                value={formData.nationality}
-                onValueChange={(value) =>
-                  handleInputChange("nationality", value)
-                }
-              >
-                <SelectTrigger id="nationality">
-                  <SelectValue placeholder="Pilih kewarganegaraan" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Indonesian">Indonesian</SelectItem>
-                  <SelectItem value="Malaysian">Malaysian</SelectItem>
-                  <SelectItem value="Singaporean">Singaporean</SelectItem>
-                  <SelectItem value="Other">Lainnya</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email *</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => handleInputChange("email", e.target.value)}
+                  placeholder="imran@sigma.com"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phone">Nomor Telepon *</Label>
+                <Input
+                  id="phone"
+                  value={formData.phone}
+                  onChange={(e) => handleInputChange("phone", e.target.value)}
+                  placeholder="081234567890"
+                />
+              </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email *</Label>
-              <Input
-                id="email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => handleInputChange("email", e.target.value)}
-                placeholder="imran@sigma.com"
-              />
+          {/* Data Pribadi */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 pb-2 border-b">
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <h4 className="text-sm">Data Pribadi</h4>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="phone">Nomor Telepon *</Label>
-              <Input
-                id="phone"
-                value={formData.phone}
-                onChange={(e) => handleInputChange("phone", e.target.value)}
-                placeholder="081234567890"
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Tanggal Lahir *</Label>
+                <DatePicker
+                  date={birthDate}
+                  onDateChange={setBirthDate}
+                  placeholder="Pilih tanggal lahir"
+                  fromYear={1940}
+                  toYear={new Date().getFullYear() - 17}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="gender">Jenis Kelamin *</Label>
+                <Select
+                  value={formData.gender}
+                  onValueChange={(value) => handleInputChange("gender", value)}
+                >
+                  <SelectTrigger id="gender">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="male">Laki-laki</SelectItem>
+                    <SelectItem value="female">Perempuan</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="height">Tinggi Badan (cm)</Label>
+                <Input
+                  id="height"
+                  type="number"
+                  value={formData.height}
+                  onChange={(e) => handleInputChange("height", e.target.value)}
+                  placeholder="165"
+                  min="0"
+                  step="0.01"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="weight">Berat Badan (kg)</Label>
+                <Input
+                  id="weight"
+                  type="number"
+                  value={formData.weight}
+                  onChange={(e) => handleInputChange("weight", e.target.value)}
+                  placeholder="55"
+                  min="0"
+                  step="0.01"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="bloodGroup">Golongan Darah</Label>
+                <Select
+                  value={formData.bloodGroup}
+                  onValueChange={(value) =>
+                    handleInputChange("bloodGroup", value)
+                  }
+                >
+                  <SelectTrigger id="bloodGroup">
+                    <SelectValue placeholder="Pilih golongan darah" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="A+">A+</SelectItem>
+                    <SelectItem value="A-">A-</SelectItem>
+                    <SelectItem value="B+">B+</SelectItem>
+                    <SelectItem value="B-">B-</SelectItem>
+                    <SelectItem value="AB+">AB+</SelectItem>
+                    <SelectItem value="AB-">AB-</SelectItem>
+                    <SelectItem value="O+">O+</SelectItem>
+                    <SelectItem value="O-">O-</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="religion">Agama *</Label>
+                <Select
+                  value={formData.religion}
+                  onValueChange={(value) => handleInputChange("religion", value)}
+                >
+                  <SelectTrigger id="religion">
+                    <SelectValue placeholder="Pilih agama" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="islam">Islam</SelectItem>
+                    <SelectItem value="kristen">Kristen</SelectItem>
+                    <SelectItem value="katolik">Katolik</SelectItem>
+                    <SelectItem value="hindu">Hindu</SelectItem>
+                    <SelectItem value="buddha">Buddha</SelectItem>
+                    <SelectItem value="konghucu">Konghucu</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="drivingLicenseNumber">Nomor SIM</Label>
+                <Input
+                  id="drivingLicenseNumber"
+                  value={formData.drivingLicenseNumber}
+                  onChange={(e) =>
+                    handleInputChange("drivingLicenseNumber", e.target.value)
+                  }
+                  placeholder="1234567890"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Tanggal Berlaku SIM</Label>
+                <DatePicker
+                  date={drivingLicenseExpiry}
+                  onDateChange={setDrivingLicenseExpiry}
+                  placeholder="Pilih tanggal berlaku"
+                  fromYear={2000}
+                  toYear={new Date().getFullYear() + 20}
+                />
+              </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Alamat & Kontak Darurat */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 pb-2 border-b">
+              <MapPin className="h-4 w-4 text-muted-foreground" />
+              <h4 className="text-sm">Alamat & Kontak Darurat</h4>
+            </div>
             <div className="space-y-2">
-              <Label>Tanggal Lahir *</Label>
-              <DatePicker
-                date={birthDate}
-                onDateChange={setBirthDate}
-                placeholder="Pilih tanggal lahir"
-                fromYear={1940}
-                toYear={new Date().getFullYear() - 17}
+              <Label htmlFor="address">Alamat *</Label>
+              <Textarea
+                id="address"
+                value={formData.address}
+                onChange={(e) => handleInputChange("address", e.target.value)}
+                placeholder="Jl. Sudirman No. 123, Jakarta"
+                rows={3}
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="gender">Jenis Kelamin *</Label>
-              <Select
-                value={formData.gender}
-                onValueChange={(value) => handleInputChange("gender", value)}
-              >
-                <SelectTrigger id="gender">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="male">Laki-laki</SelectItem>
-                  <SelectItem value="female">Perempuan</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="height">Tinggi Badan (cm)</Label>
-              <Input
-                id="height"
-                type="number"
-                value={formData.height}
-                onChange={(e) => handleInputChange("height", e.target.value)}
-                placeholder="165"
-                min="0"
-                step="0.01"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="weight">Berat Badan (kg)</Label>
-              <Input
-                id="weight"
-                type="number"
-                value={formData.weight}
-                onChange={(e) => handleInputChange("weight", e.target.value)}
-                placeholder="55"
-                min="0"
-                step="0.01"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="bloodGroup">Golongan Darah</Label>
-              <Select
-                value={formData.bloodGroup}
-                onValueChange={(value) =>
-                  handleInputChange("bloodGroup", value)
-                }
-              >
-                <SelectTrigger id="bloodGroup">
-                  <SelectValue placeholder="Pilih golongan darah" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="A+">A+</SelectItem>
-                  <SelectItem value="A-">A-</SelectItem>
-                  <SelectItem value="B+">B+</SelectItem>
-                  <SelectItem value="B-">B-</SelectItem>
-                  <SelectItem value="AB+">AB+</SelectItem>
-                  <SelectItem value="AB-">AB-</SelectItem>
-                  <SelectItem value="O+">O+</SelectItem>
-                  <SelectItem value="O-">O-</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="religion">Agama *</Label>
-              <Select
-                value={formData.religion}
-                onValueChange={(value) => handleInputChange("religion", value)}
-              >
-                <SelectTrigger id="religion">
-                  <SelectValue placeholder="Pilih agama" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="islam">Islam</SelectItem>
-                  <SelectItem value="kristen">Kristen</SelectItem>
-                  <SelectItem value="katolik">Katolik</SelectItem>
-                  <SelectItem value="hindu">Hindu</SelectItem>
-                  <SelectItem value="buddha">Buddha</SelectItem>
-                  <SelectItem value="konghucu">Konghucu</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="drivingLicenseNumber">Nomor SIM</Label>
-              <Input
-                id="drivingLicenseNumber"
-                value={formData.drivingLicenseNumber}
-                onChange={(e) =>
-                  handleInputChange("drivingLicenseNumber", e.target.value)
-                }
-                placeholder="1234567890"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Tanggal Berlaku SIM</Label>
-              <DatePicker
-                date={drivingLicenseExpiry}
-                onDateChange={setDrivingLicenseExpiry}
-                placeholder="Pilih tanggal berlaku"
-                fromYear={2000}
-                toYear={new Date().getFullYear() + 20}
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="address">Alamat *</Label>
-            <Textarea
-              id="address"
-              value={formData.address}
-              onChange={(e) => handleInputChange("address", e.target.value)}
-              placeholder="Jl. Sudirman No. 123, Jakarta"
-              rows={3}
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="emergencyContact">Kontak Darurat</Label>
-              <Input
-                id="emergencyContact"
-                value={formData.emergencyContact}
-                onChange={(e) =>
-                  handleInputChange("emergencyContact", e.target.value)
-                }
-                placeholder="Nama kontak darurat"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="emergencyPhone">Nomor Kontak Darurat</Label>
-              <Input
-                id="emergencyPhone"
-                value={formData.emergencyPhone}
-                onChange={(e) =>
-                  handleInputChange("emergencyPhone", e.target.value)
-                }
-                placeholder="081234567890"
-              />
-            </div>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="employment" className="space-y-4 mt-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="division">Divisi *</Label>
-              <Select
-                value={formData.division}
-                onValueChange={(value) => handleInputChange("division", value)}
-              >
-                <SelectTrigger id="division">
-                  <SelectValue placeholder="Pilih divisi" />
-                </SelectTrigger>
-                <SelectContent>
-                  {MASTER_DIVISIONS.filter((div) => div.isActive).map(
-                    (division) => (
-                      <SelectItem key={division.id} value={division.name}>
-                        {division.shortname} - {division.name}
-                      </SelectItem>
-                    )
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="position">Jabatan *</Label>
-              <Input
-                id="position"
-                value={formData.position}
-                onChange={(e) => handleInputChange("position", e.target.value)}
-                placeholder="Mandor Panen"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="gradeLevel">Golongan *</Label>
-              <Select
-                value={formData.gradeLevel}
-                onValueChange={(value) =>
-                  handleInputChange("gradeLevel", value)
-                }
-              >
-                <SelectTrigger id="gradeLevel">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="pegawai">Pegawai</SelectItem>
-                  <SelectItem value="karyawan">Karyawan</SelectItem>
-                  <SelectItem value="pkwt">PKWT</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Tanggal Bergabung *</Label>
-              <DatePicker
-                date={joinDate}
-                onDateChange={setJoinDate}
-                placeholder="Pilih tanggal bergabung"
-                fromYear={2000}
-                toYear={new Date().getFullYear() + 1}
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="emergencyContact">Kontak Darurat</Label>
+                <Input
+                  id="emergencyContact"
+                  value={formData.emergencyContact}
+                  onChange={(e) =>
+                    handleInputChange("emergencyContact", e.target.value)
+                  }
+                  placeholder="Nama kontak darurat"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="emergencyPhone">Nomor Kontak Darurat</Label>
+                <Input
+                  id="emergencyPhone"
+                  value={formData.emergencyPhone}
+                  onChange={(e) =>
+                    handleInputChange("emergencyPhone", e.target.value)
+                  }
+                  placeholder="081234567890"
+                />
+              </div>
             </div>
           </div>
         </TabsContent>
 
-        <TabsContent value="financial" className="space-y-4 mt-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="bankName">Nama Bank *</Label>
-              <Select
-                value={formData.bankName}
-                onValueChange={(value) => handleInputChange("bankName", value)}
-              >
-                <SelectTrigger id="bankName">
-                  <SelectValue placeholder="Pilih bank" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="BCA">BCA</SelectItem>
-                  <SelectItem value="Mandiri">Mandiri</SelectItem>
-                  <SelectItem value="BNI">BNI</SelectItem>
-                  <SelectItem value="BRI">BRI</SelectItem>
-                  <SelectItem value="CIMB Niaga">CIMB Niaga</SelectItem>
-                  <SelectItem value="Permata">Permata</SelectItem>
-                </SelectContent>
-              </Select>
+        <TabsContent value="employment" className="space-y-6 mt-6">
+          {/* Informasi Pekerjaan */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 pb-2 border-b">
+              <Briefcase className="h-4 w-4 text-muted-foreground" />
+              <h4 className="text-sm">Informasi Pekerjaan</h4>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="bankAccount">Nomor Rekening *</Label>
-              <Input
-                id="bankAccount"
-                value={formData.bankAccount}
-                onChange={(e) =>
-                  handleInputChange("bankAccount", e.target.value)
-                }
-                placeholder="1234567890"
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="division">Divisi *</Label>
+                <Select
+                  value={formData.division}
+                  onValueChange={(value) => handleInputChange("division", value)}
+                >
+                  <SelectTrigger id="division">
+                    <SelectValue placeholder="Pilih divisi" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {MASTER_DIVISIONS.filter((div) => div.isActive).map(
+                      (division) => (
+                        <SelectItem key={division.id} value={division.name}>
+                          {division.shortname} - {division.name}
+                        </SelectItem>
+                      )
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="position">Jabatan *</Label>
+                <Input
+                  id="position"
+                  value={formData.position}
+                  onChange={(e) => handleInputChange("position", e.target.value)}
+                  placeholder="Mandor Panen"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="gradeLevel">Golongan *</Label>
+                <Select
+                  value={formData.gradeLevel}
+                  onValueChange={(value) =>
+                    handleInputChange("gradeLevel", value)
+                  }
+                >
+                  <SelectTrigger id="gradeLevel">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pegawai">Pegawai</SelectItem>
+                    <SelectItem value="karyawan">Karyawan</SelectItem>
+                    <SelectItem value="pkwt">PKWT</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Tanggal Bergabung *</Label>
+                <DatePicker
+                  date={joinDate}
+                  onDateChange={setJoinDate}
+                  placeholder="Pilih tanggal bergabung"
+                  fromYear={2000}
+                  toYear={new Date().getFullYear() + 1}
+                />
+              </div>
             </div>
           </div>
         </TabsContent>
 
-        <TabsContent value="assets" className="space-y-4 mt-4">
-          <div className="border rounded-lg p-4 space-y-4 bg-muted/20">
-            <h4 className="mb-3">Tambah Aset Baru</h4>
+        <TabsContent value="financial" className="space-y-6 mt-6">
+          {/* Informasi Bank */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 pb-2 border-b">
+              <CreditCard className="h-4 w-4 text-muted-foreground" />
+              <h4 className="text-sm">Informasi Rekening Bank</h4>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="bankName">Nama Bank *</Label>
+                <Select
+                  value={formData.bankName}
+                  onValueChange={(value) => handleInputChange("bankName", value)}
+                >
+                  <SelectTrigger id="bankName">
+                    <SelectValue placeholder="Pilih bank" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="BCA">BCA</SelectItem>
+                    <SelectItem value="Mandiri">Mandiri</SelectItem>
+                    <SelectItem value="BNI">BNI</SelectItem>
+                    <SelectItem value="BRI">BRI</SelectItem>
+                    <SelectItem value="CIMB Niaga">CIMB Niaga</SelectItem>
+                    <SelectItem value="Permata">Permata</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="bankAccount">Nomor Rekening *</Label>
+                <Input
+                  id="bankAccount"
+                  value={formData.bankAccount}
+                  onChange={(e) =>
+                    handleInputChange("bankAccount", e.target.value)
+                  }
+                  placeholder="1234567890"
+                />
+              </div>
+            </div>
+            <div className="rounded-lg bg-muted/50 p-4 text-sm text-muted-foreground">
+              <p className="flex items-center gap-2">
+                <CreditCard className="h-4 w-4" />
+                Pastikan nomor rekening sudah benar untuk proses transfer gaji
+              </p>
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="bpjs" className="space-y-6 mt-6">
+          {/* Nomor BPJS */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 pb-2 border-b">
+              <Shield className="h-4 w-4 text-muted-foreground" />
+              <h4 className="text-sm">Nomor BPJS</h4>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="bpjsKesehatanNumber">Nomor BPJS Kesehatan</Label>
+                <Input
+                  id="bpjsKesehatanNumber"
+                  value={formData.bpjsKesehatanNumber}
+                  onChange={(e) =>
+                    handleInputChange("bpjsKesehatanNumber", e.target.value)
+                  }
+                  placeholder="0001234567890"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="bpjsKetenagakerjaanNumber">
+                  Nomor BPJS Ketenagakerjaan
+                </Label>
+                <Input
+                  id="bpjsKetenagakerjaanNumber"
+                  value={formData.bpjsKetenagakerjaanNumber}
+                  onChange={(e) =>
+                    handleInputChange("bpjsKetenagakerjaanNumber", e.target.value)
+                  }
+                  placeholder="1234567890123"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Status Pajak */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 pb-2 border-b">
+              <FileText className="h-4 w-4 text-muted-foreground" />
+              <h4 className="text-sm">Status Pajak</h4>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="bpjsTaxStatus">
+                Status Pajak BPJS Ketenagakerjaan
+              </Label>
+              <Select
+                value={formData.bpjsTaxStatus}
+                onValueChange={(value) =>
+                  handleInputChange("bpjsTaxStatus", value)
+                }
+              >
+                <SelectTrigger id="bpjsTaxStatus">
+                  <SelectValue placeholder="Pilih status pajak" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="TK">TK - Tidak Kawin</SelectItem>
+                  <SelectItem value="K/0">K/0 - Kawin tanpa tanggungan</SelectItem>
+                  <SelectItem value="K/1">K/1 - Kawin 1 tanggungan</SelectItem>
+                  <SelectItem value="K/2">K/2 - Kawin 2 tanggungan</SelectItem>
+                  <SelectItem value="K/3">K/3 - Kawin 3 tanggungan</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Data Keluarga */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 pb-2 border-b">
+              <Users2 className="h-4 w-4 text-muted-foreground" />
+              <h4 className="text-sm">Data Keluarga</h4>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="spouseName">Nama Istri/Suami</Label>
+              <Input
+                id="spouseName"
+                value={formData.spouseName}
+                onChange={(e) => handleInputChange("spouseName", e.target.value)}
+                placeholder="Nama istri/suami"
+              />
+            </div>
+
+            <div className="space-y-4">
+              <Label>Data Anak (Maksimal 3 anak)</Label>
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label htmlFor="child1Name" className="text-sm text-muted-foreground">
+                    Anak 1
+                  </Label>
+                  <Input
+                    id="child1Name"
+                    value={formData.child1Name}
+                    onChange={(e) =>
+                      handleInputChange("child1Name", e.target.value)
+                    }
+                    placeholder="Nama anak pertama"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="child2Name" className="text-sm text-muted-foreground">
+                    Anak 2
+                  </Label>
+                  <Input
+                    id="child2Name"
+                    value={formData.child2Name}
+                    onChange={(e) =>
+                      handleInputChange("child2Name", e.target.value)
+                    }
+                    placeholder="Nama anak kedua"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="child3Name" className="text-sm text-muted-foreground">
+                    Anak 3
+                  </Label>
+                  <Input
+                    id="child3Name"
+                    value={formData.child3Name}
+                    onChange={(e) =>
+                      handleInputChange("child3Name", e.target.value)
+                    }
+                    placeholder="Nama anak ketiga"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="assets" className="space-y-6 mt-6">
+          {/* Form Tambah Aset */}
+          <div className="border rounded-lg p-6 space-y-4 bg-muted/20">
+            <div className="flex items-center gap-2 pb-2 border-b border-border/50">
+              <Package className="h-4 w-4 text-muted-foreground" />
+              <h4 className="text-sm">Tambah Aset Baru</h4>
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -958,13 +1229,18 @@ export function EmployeeManagement() {
             </div>
 
             <Button type="button" onClick={handleAddAsset} className="w-full">
+              <Package className="h-4 w-4 mr-2" />
               Tambah Aset
             </Button>
           </div>
 
+          {/* Daftar Aset */}
           {assets.length > 0 && (
-            <div className="space-y-3">
-              <h4>Daftar Aset ({assets.length})</h4>
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 pb-2 border-b">
+                <Package className="h-4 w-4 text-muted-foreground" />
+                <h4 className="text-sm">Daftar Aset ({assets.length})</h4>
+              </div>
               {assets.map((asset) => (
                 <Card key={asset.id} className="p-4">
                   <div className="flex justify-between items-start">
@@ -1032,6 +1308,7 @@ export function EmployeeManagement() {
       currentAsset,
       loanStartDate,
       loanEndDate,
+      drivingLicenseExpiry,
     ]
   );
 
