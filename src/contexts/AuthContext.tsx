@@ -43,11 +43,7 @@ import { clearAuthStorage } from "../utils/auth-cleanup";
  * User role types yang tersedia dalam sistem
  * #UserRoles #AccessLevels
  */
-export type UserRole =
-  | "super_admin"
-  | "admin"
-  | "manager"
-  | "karyawan";
+export type UserRole = "super_admin" | "admin" | "manager" | "karyawan";
 
 /**
  * Interface untuk data user
@@ -89,15 +85,13 @@ interface AuthContextType {
   logout: () => void;
   hasPermission: (
     module: string,
-    action?: "view" | "create" | "edit" | "delete",
+    action?: "view" | "create" | "edit" | "delete"
   ) => boolean;
   canAccessMenu: (menuId: string) => boolean;
   isLoading: boolean;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(
-  undefined,
-);
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 /**
  * ==========================================================================
@@ -195,10 +189,7 @@ const MOCK_PASSWORDS: Record<string, string> = {
  * - settings, user_management, role_management
  * ==========================================================================
  */
-const ROLE_PERMISSIONS: Record<
-  UserRole,
-  Record<string, Permission>
-> = {
+const ROLE_PERMISSIONS: Record<UserRole, Record<string, Permission>> = {
   super_admin: {
     dashboard: {
       module: "dashboard",
@@ -1078,6 +1069,17 @@ const MENU_MODULE_MAP: Record<string, string> = {
   "clinic-report-costs": "clinic_reports",
 };
 
+function getFromLS() {
+  const fromLS = localStorage.getItem("user");
+  return fromLS ? JSON.parse(fromLS) : null;
+}
+function setToLocalStotrage(user: User) {
+  localStorage.setItem("user", JSON.stringify(user));
+}
+function delFromLocalStorage() {
+  localStorage.removeItem("user");
+}
+
 /**
  * ==========================================================================
  * AUTH PROVIDER COMPONENT
@@ -1091,12 +1093,8 @@ const MENU_MODULE_MAP: Record<string, string> = {
  * @param children - Child components yang akan dibungkus provider
  * ==========================================================================
  */
-export function AuthProvider({
-  children,
-}: {
-  children: ReactNode;
-}) {
-  const [user, setUser] = useState<User | null>(null);
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(getFromLS);
   const [isLoading, setIsLoading] = useState(true);
 
   /**
@@ -1105,82 +1103,29 @@ export function AuthProvider({
    */
   useEffect(() => {
     // Check active sessions and sets the user
-    supabase.auth.getSession().then(async ({ data: { session }, error: sessionError }) => {
-      // If there's an error getting session, clear any stale data
-      if (sessionError) {
-        console.error('Session error:', sessionError);
-        await supabase.auth.signOut();
-        setUser(null);
-        setIsLoading(false);
-        return;
-      }
-
-      if (session?.user) {
-        // Fetch user data from our users table with role
-        const { data: userData, error } = await supabase
-          .from('users')
-          .select(`
-            *,
-            role:roles!role_id(code, name)
-          `)
-          .eq('id', session.user.id)
-          .single();
-
-        if (userData && !error && userData.role) {
-          const appUser: User = {
-            id: userData.id,
-            name: userData.full_name,
-            email: userData.email,
-            role: userData.role.code as UserRole,
-            employeeId: userData.employee_id || undefined,
-            status: 'active',
-            createdAt: userData.created_at,
-            lastLogin: new Date().toISOString(),
-          };
-          setUser(appUser);
-        } else if (error) {
-          // If we can't fetch user data, clear the session
-          console.error('Error fetching user data on session restore:', error);
+    supabase.auth
+      .getSession()
+      .then(async ({ data: { session }, error: sessionError }) => {
+        // If there's an error getting session, clear any stale data
+        if (sessionError) {
+          console.error("Session error:", sessionError);
           await supabase.auth.signOut();
           setUser(null);
+          setIsLoading(false);
+          return;
         }
-      }
-      setIsLoading(false);
-    }).catch(async (err) => {
-      // Catch any unexpected errors and clear session
-      console.error('Unexpected session restore error:', err);
-      await supabase.auth.signOut();
-      setUser(null);
-      setIsLoading(false);
-    });
 
-    // Listen for changes on auth state (sign in, sign out, etc.)
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state changed:', event);
-
-      // Handle sign out events
-      if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
-        setUser(null);
-        return;
-      }
-
-      // Handle token refresh errors
-      if (event === 'TOKEN_REFRESHED') {
-        console.log('Token refreshed successfully');
-      }
-
-      if (session?.user) {
-        try {
+        if (session?.user) {
           // Fetch user data from our users table with role
           const { data: userData, error } = await supabase
-            .from('users')
-            .select(`
-              *,
-              role:roles!role_id(code, name)
-            `)
-            .eq('id', session.user.id)
+            .from("users")
+            .select(
+              `
+            *,
+            role:roles!role_id(code, name)
+          `
+            )
+            .eq("id", session.user.id)
             .single();
 
           if (userData && !error && userData.role) {
@@ -1190,24 +1135,86 @@ export function AuthProvider({
               email: userData.email,
               role: userData.role.code as UserRole,
               employeeId: userData.employee_id || undefined,
-              status: 'active',
+              status: "active",
               createdAt: userData.created_at,
               lastLogin: new Date().toISOString(),
             };
             setUser(appUser);
           } else if (error) {
-            console.error('Error fetching user data on auth change:', error);
-            // Clear session if we can't fetch user data
+            // If we can't fetch user data, clear the session
+            console.error(
+              "Error fetching user data on session restore:",
+              error
+            );
             await supabase.auth.signOut();
             setUser(null);
           }
+        }
+        setIsLoading(false);
+      })
+      .catch(async (err) => {
+        // Catch any unexpected errors and clear session
+        console.error("Unexpected session restore error:", err);
+        await supabase.auth.signOut();
+        setUser(null);
+        setIsLoading(false);
+      });
+
+    // Listen for changes on auth state (sign in, sign out, etc.)
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("Auth state changed:", event);
+
+      // Handle sign out events
+      if (event === "SIGNED_OUT" || event === "TOKEN_REFRESHED") {
+        setUser(null);
+        delFromLocalStorage();
+        return;
+      }
+
+      if (session?.user) {
+        try {
+          // Fetch user data from our users table with role
+          const { data: userData, error } = await supabase
+            .from("users")
+            .select(
+              `
+              *,
+              role:roles!role_id(code, name)
+            `
+            )
+            .eq("id", session.user.id)
+            .single();
+
+          if (userData && !error && userData.role) {
+            const appUser: User = {
+              id: userData.id,
+              name: userData.full_name,
+              email: userData.email,
+              role: userData.role.code as UserRole,
+              employeeId: userData.employee_id || undefined,
+              status: "active",
+              createdAt: userData.created_at,
+              lastLogin: new Date().toISOString(),
+            };
+            setUser(appUser);
+          } else if (error) {
+            console.error("Error fetching user data on auth change:", error);
+            // Clear session if we can't fetch user data
+            await supabase.auth.signOut();
+            setUser(null);
+            delFromLocalStorage();
+          }
         } catch (err) {
-          console.error('Unexpected error in auth state change:', err);
+          console.error("Unexpected error in auth state change:", err);
           await supabase.auth.signOut();
           setUser(null);
+          delFromLocalStorage();
         }
       } else {
         setUser(null);
+        delFromLocalStorage();
       }
     });
 
@@ -1222,24 +1229,22 @@ export function AuthProvider({
    * @param password - Password user
    * @returns Promise<boolean> - true jika login berhasil
    */
-  const login = async (
-    email: string,
-    password: string,
-  ): Promise<boolean> => {
+  const login = async (email: string, password: string): Promise<boolean> => {
     try {
       setIsLoading(true);
-      console.log('🔐 Attempting login for:', email);
+      console.log("🔐 Attempting login for:", email);
 
       // Sign in with Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const { data: authData, error: authError } =
+        await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
 
-      console.log('📡 Auth response:', { authData, authError });
+      console.log("📡 Auth response:", { authData, authError });
 
       if (authError) {
-        console.error('❌ Login error:', authError);
+        console.error("❌ Login error:", authError);
         alert(`Login gagal: ${authError.message}`);
         setIsLoading(false);
         return false;
@@ -1248,18 +1253,20 @@ export function AuthProvider({
       if (authData.user) {
         // Fetch user data from our users table with role
         const { data: userData, error: userError } = await supabase
-          .from('users')
-          .select(`
+          .from("users")
+          .select(
+            `
             *,
             role:roles!role_id(code, name)
-          `)
-          .eq('id', authData.user.id)
+          `
+          )
+          .eq("id", authData.user.id)
           .single();
 
-        console.log('👤 User data response:', { userData, userError });
+        console.log("👤 User data response:", { userData, userError });
 
         if (userError) {
-          console.error('❌ Error fetching user data:', userError);
+          console.error("❌ Error fetching user data:", userError);
           alert(`Error mengambil data user: ${userError.message}`);
           await supabase.auth.signOut();
           setIsLoading(false);
@@ -1267,29 +1274,30 @@ export function AuthProvider({
         }
 
         if (userData && userData.role) {
-          console.log('✅ Login successful! User data:', userData);
+          console.log("✅ Login successful! User data:", userData);
           const appUser: User = {
             id: userData.id,
             name: userData.full_name,
             email: userData.email,
             role: userData.role.code as UserRole,
             employeeId: userData.employee_id || undefined,
-            status: 'active',
+            status: "active",
             createdAt: userData.created_at,
             lastLogin: new Date().toISOString(),
           };
           setUser(appUser);
+          setToLocalStotrage(appUser);
           setIsLoading(false);
           return true;
         }
       }
 
-      console.error('❌ No user data returned');
-      alert('Login gagal: Tidak ada data user');
+      console.error("❌ No user data returned");
+      alert("Login gagal: Tidak ada data user");
       setIsLoading(false);
       return false;
     } catch (error) {
-      console.error('❌ Unexpected login error:', error);
+      console.error("❌ Unexpected login error:", error);
       alert(`Error tidak terduga: ${error}`);
       setIsLoading(false);
       return false;
@@ -1302,13 +1310,13 @@ export function AuthProvider({
    */
   const logout = async () => {
     try {
-      console.log('🚪 Logging out...');
+      console.log("🚪 Logging out...");
 
       // Sign out from Supabase
       const { error } = await supabase.auth.signOut();
 
       if (error) {
-        console.error('Supabase signOut error:', error);
+        console.error("Supabase signOut error:", error);
       }
 
       // Clear any remaining auth storage (important for Chrome)
@@ -1316,13 +1324,15 @@ export function AuthProvider({
 
       // Clear user state
       setUser(null);
+      delFromLocalStorage();
 
-      console.log('✅ Logout successful');
+      console.log("✅ Logout successful");
     } catch (error) {
-      console.error('❌ Unexpected logout error:', error);
+      console.error("❌ Unexpected logout error:", error);
       // Still clear user state and storage even if signOut fails
       clearAuthStorage();
       setUser(null);
+      delFromLocalStorage();
     }
   };
 
@@ -1336,7 +1346,7 @@ export function AuthProvider({
    */
   const hasPermission = (
     module: string,
-    action: "view" | "create" | "edit" | "delete" = "view",
+    action: "view" | "create" | "edit" | "delete" = "view"
   ): boolean => {
     if (!user) return false;
 
@@ -1417,9 +1427,7 @@ export function AuthProvider({
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error(
-      "useAuth must be used within an AuthProvider",
-    );
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 }
