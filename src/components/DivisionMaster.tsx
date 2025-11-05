@@ -8,8 +8,20 @@ import { Textarea } from './ui/textarea';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from './ui/dialog';
 import { Search, Edit2, Trash2, Plus, Layers } from 'lucide-react';
 import { Switch } from './ui/switch';
+import { Checkbox } from './ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { MASTER_DIVISIONS } from '../shared/divisionData';
 import { MASTER_EMPLOYEES } from '../shared/employeeData';
+
+interface AdministrativeUnit {
+  divisi1: { name: string; isFactory: boolean };
+  divisi2: { name: string; isFactory: boolean };
+  divisi3: { name: string; isFactory: boolean };
+  divisi4: { name: string; isFactory: boolean };
+  divisi5: { name: string; isFactory: boolean };
+  divisi6: { name: string; isFactory: boolean };
+  divisi7: { name: string; isFactory: boolean };
+}
 
 interface Division {
   id: string;
@@ -17,7 +29,7 @@ interface Division {
   shortname: string;
   name: string;
   isFactory: boolean;
-  administrativeUnit: string;
+  administrativeUnit: AdministrativeUnit;
   group: string;
   isActive: boolean;
   employeeCount: number;
@@ -33,9 +45,15 @@ export function DivisionMaster() {
     code: '',
     shortname: '',
     name: '',
-    isFactory: false,
-    administrativeUnit: 'Estate',
-    group: '',
+    administrativeUnit: {
+      divisi1: { name: '', isFactory: false },
+      divisi2: { name: '', isFactory: false },
+      divisi3: { name: '', isFactory: false },
+      divisi4: { name: '', isFactory: false },
+      divisi5: { name: '', isFactory: false },
+      divisi6: { name: '', isFactory: false },
+      divisi7: { name: '', isFactory: false },
+    },
     isActive: true,
   });
 
@@ -49,15 +67,40 @@ export function DivisionMaster() {
 
   const [divisions, setDivisions] = useState<Division[]>(initialDivisions);
 
+  const getAdminUnitDisplay = (adminUnit: Division['administrativeUnit']): string => {
+    const values: string[] = [];
+    if (adminUnit.divisi1?.name) values.push(`${adminUnit.divisi1.name}${adminUnit.divisi1.isFactory ? ' (Pabrik)' : ''}`);
+    if (adminUnit.divisi2?.name) values.push(`${adminUnit.divisi2.name}${adminUnit.divisi2.isFactory ? ' (Pabrik)' : ''}`);
+    if (adminUnit.divisi3?.name) values.push(`${adminUnit.divisi3.name}${adminUnit.divisi3.isFactory ? ' (Pabrik)' : ''}`);
+    if (adminUnit.divisi4?.name) values.push(`${adminUnit.divisi4.name}${adminUnit.divisi4.isFactory ? ' (Pabrik)' : ''}`);
+    if (adminUnit.divisi5?.name) values.push(`${adminUnit.divisi5.name}${adminUnit.divisi5.isFactory ? ' (Pabrik)' : ''}`);
+    if (adminUnit.divisi6?.name) values.push(`${adminUnit.divisi6.name}${adminUnit.divisi6.isFactory ? ' (Pabrik)' : ''}`);
+    if (adminUnit.divisi7?.name) values.push(`${adminUnit.divisi7.name}${adminUnit.divisi7.isFactory ? ' (Pabrik)' : ''}`);
+    return values.join(', ');
+  };
+
   const filteredDivisions = divisions.filter((div) =>
     div.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     div.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
     div.shortname.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    div.group.toLowerCase().includes(searchQuery.toLowerCase())
+    getAdminUnitDisplay(div.administrativeUnit).toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const handleInputChange = (field: string, value: string | boolean) => {
     setFormData({ ...formData, [field]: value });
+  };
+
+  const handleAdminUnitChange = (divisi: keyof AdministrativeUnit, field: 'name' | 'isFactory', value: string | boolean) => {
+    setFormData({
+      ...formData,
+      administrativeUnit: {
+        ...formData.administrativeUnit,
+        [divisi]: {
+          ...formData.administrativeUnit[divisi],
+          [field]: value,
+        },
+      },
+    });
   };
 
   const resetForm = () => {
@@ -65,9 +108,15 @@ export function DivisionMaster() {
       code: '',
       shortname: '',
       name: '',
-      isFactory: false,
-      administrativeUnit: 'Estate',
-      group: '',
+      administrativeUnit: {
+        divisi1: { name: '', isFactory: false },
+        divisi2: { name: '', isFactory: false },
+        divisi3: { name: '', isFactory: false },
+        divisi4: { name: '', isFactory: false },
+        divisi5: { name: '', isFactory: false },
+        divisi6: { name: '', isFactory: false },
+        divisi7: { name: '', isFactory: false },
+      },
       isActive: true,
     });
   };
@@ -78,9 +127,9 @@ export function DivisionMaster() {
       code: formData.code,
       shortname: formData.shortname,
       name: formData.name,
-      isFactory: formData.isFactory,
+      isFactory: false, // Keep for compatibility but not used
       administrativeUnit: formData.administrativeUnit,
-      group: formData.group,
+      group: '', // Keep for compatibility but not used
       isActive: formData.isActive,
       employeeCount: 0,
     };
@@ -96,9 +145,7 @@ export function DivisionMaster() {
       code: division.code,
       shortname: division.shortname,
       name: division.name,
-      isFactory: division.isFactory,
       administrativeUnit: division.administrativeUnit,
-      group: division.group,
       isActive: division.isActive,
     });
     setIsEditDialogOpen(true);
@@ -114,9 +161,9 @@ export function DivisionMaster() {
             code: formData.code,
             shortname: formData.shortname,
             name: formData.name,
-            isFactory: formData.isFactory,
+            isFactory: false, // Keep for compatibility
             administrativeUnit: formData.administrativeUnit,
-            group: formData.group,
+            group: '', // Keep for compatibility
             isActive: formData.isActive,
           }
         : div
@@ -134,85 +181,205 @@ export function DivisionMaster() {
     }
   };
 
-  const DivisionFormFields = () => (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+  // Render form fields directly in JSX to prevent lost focus issue
+  const renderFormFields = () => {
+    if (!formData?.administrativeUnit) return null;
+    
+    return (
+      <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="code">Kode *</Label>
+            <Input
+              id="code"
+              value={formData.code || ''}
+              onChange={(e) => handleInputChange('code', e.target.value)}
+              placeholder="7"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="shortname">Shortname *</Label>
+            <Input
+              id="shortname"
+              value={formData.shortname || ''}
+              onChange={(e) => handleInputChange('shortname', e.target.value)}
+              placeholder="BB"
+            />
+          </div>
+        </div>
+
         <div className="space-y-2">
-          <Label htmlFor="code">Kode *</Label>
+          <Label htmlFor="name">Nama Unit *</Label>
           <Input
-            id="code"
-            value={formData.code}
-            onChange={(e) => handleInputChange('code', e.target.value)}
-            placeholder="7"
+            id="name"
+            value={formData.name || ''}
+            onChange={(e) => handleInputChange('name', e.target.value)}
+            placeholder="Bangun Bandar"
           />
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="shortname">Shortname *</Label>
-          <Input
-            id="shortname"
-            value={formData.shortname}
-            onChange={(e) => handleInputChange('shortname', e.target.value)}
-            placeholder="BB"
+
+        <div className="space-y-3">
+          <Label>Administrative Unit *</Label>
+          <p className="text-sm text-muted-foreground mb-3">Isi divisi yang terkait dengan unit ini</p>
+          <div className="border rounded-md p-3 bg-muted/10">
+            <div className="grid grid-cols-1 gap-3">
+              <div className="flex gap-3 items-center">
+                <Input
+                  id="divisi1"
+                  value={formData.administrativeUnit.divisi1?.name || ''}
+                  onChange={(e) => handleAdminUnitChange('divisi1', 'name', e.target.value)}
+                  placeholder="Divisi I"
+                  className="flex-1"
+                />
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="divisi1-factory"
+                    checked={formData.administrativeUnit.divisi1?.isFactory || false}
+                    onCheckedChange={(checked) => handleAdminUnitChange('divisi1', 'isFactory', checked as boolean)}
+                  />
+                  <Label htmlFor="divisi1-factory" className="cursor-pointer text-sm whitespace-nowrap">
+                    Pabrik
+                  </Label>
+                </div>
+              </div>
+              
+              <div className="flex gap-3 items-center">
+                <Input
+                  id="divisi2"
+                  value={formData.administrativeUnit.divisi2?.name || ''}
+                  onChange={(e) => handleAdminUnitChange('divisi2', 'name', e.target.value)}
+                  placeholder="Divisi II"
+                  className="flex-1"
+                />
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="divisi2-factory"
+                    checked={formData.administrativeUnit.divisi2?.isFactory || false}
+                    onCheckedChange={(checked) => handleAdminUnitChange('divisi2', 'isFactory', checked as boolean)}
+                  />
+                  <Label htmlFor="divisi2-factory" className="cursor-pointer text-sm whitespace-nowrap">
+                    Pabrik
+                  </Label>
+                </div>
+              </div>
+              
+              <div className="flex gap-3 items-center">
+                <Input
+                  id="divisi3"
+                  value={formData.administrativeUnit.divisi3?.name || ''}
+                  onChange={(e) => handleAdminUnitChange('divisi3', 'name', e.target.value)}
+                  placeholder="Divisi III"
+                  className="flex-1"
+                />
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="divisi3-factory"
+                    checked={formData.administrativeUnit.divisi3?.isFactory || false}
+                    onCheckedChange={(checked) => handleAdminUnitChange('divisi3', 'isFactory', checked as boolean)}
+                  />
+                  <Label htmlFor="divisi3-factory" className="cursor-pointer text-sm whitespace-nowrap">
+                    Pabrik
+                  </Label>
+                </div>
+              </div>
+              
+              <div className="flex gap-3 items-center">
+                <Input
+                  id="divisi4"
+                  value={formData.administrativeUnit.divisi4?.name || ''}
+                  onChange={(e) => handleAdminUnitChange('divisi4', 'name', e.target.value)}
+                  placeholder="Divisi IV"
+                  className="flex-1"
+                />
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="divisi4-factory"
+                    checked={formData.administrativeUnit.divisi4?.isFactory || false}
+                    onCheckedChange={(checked) => handleAdminUnitChange('divisi4', 'isFactory', checked as boolean)}
+                  />
+                  <Label htmlFor="divisi4-factory" className="cursor-pointer text-sm whitespace-nowrap">
+                    Pabrik
+                  </Label>
+                </div>
+              </div>
+              
+              <div className="flex gap-3 items-center">
+                <Input
+                  id="divisi5"
+                  value={formData.administrativeUnit.divisi5?.name || ''}
+                  onChange={(e) => handleAdminUnitChange('divisi5', 'name', e.target.value)}
+                  placeholder="Divisi Kebun"
+                  className="flex-1"
+                />
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="divisi5-factory"
+                    checked={formData.administrativeUnit.divisi5?.isFactory || false}
+                    onCheckedChange={(checked) => handleAdminUnitChange('divisi5', 'isFactory', checked as boolean)}
+                  />
+                  <Label htmlFor="divisi5-factory" className="cursor-pointer text-sm whitespace-nowrap">
+                    Pabrik
+                  </Label>
+                </div>
+              </div>
+              
+              <div className="flex gap-3 items-center">
+                <Input
+                  id="divisi6"
+                  value={formData.administrativeUnit.divisi6?.name || ''}
+                  onChange={(e) => handleAdminUnitChange('divisi6', 'name', e.target.value)}
+                  placeholder="Divisi Pabrik"
+                  className="flex-1"
+                />
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="divisi6-factory"
+                    checked={formData.administrativeUnit.divisi6?.isFactory || false}
+                    onCheckedChange={(checked) => handleAdminUnitChange('divisi6', 'isFactory', checked as boolean)}
+                  />
+                  <Label htmlFor="divisi6-factory" className="cursor-pointer text-sm whitespace-nowrap">
+                    Pabrik
+                  </Label>
+                </div>
+              </div>
+              
+              <div className="flex gap-3 items-center">
+                <Input
+                  id="divisi7"
+                  value={formData.administrativeUnit.divisi7?.name || ''}
+                  onChange={(e) => handleAdminUnitChange('divisi7', 'name', e.target.value)}
+                  placeholder="Divisi VII"
+                  className="flex-1"
+                />
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="divisi7-factory"
+                    checked={formData.administrativeUnit.divisi7?.isFactory || false}
+                    onCheckedChange={(checked) => handleAdminUnitChange('divisi7', 'isFactory', checked as boolean)}
+                  />
+                  <Label htmlFor="divisi7-factory" className="cursor-pointer text-sm whitespace-nowrap">
+                    Pabrik
+                  </Label>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between p-3 bg-muted/30 rounded">
+          <div>
+            <Label htmlFor="isActive" className="cursor-pointer">Status Aktif</Label>
+            <p className="text-sm text-muted-foreground">Unit dapat digunakan</p>
+          </div>
+          <Switch
+            id="isActive"
+            checked={formData.isActive}
+            onCheckedChange={(checked) => handleInputChange('isActive', checked)}
           />
         </div>
       </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="name">Nama Unit *</Label>
-        <Input
-          id="name"
-          value={formData.name}
-          onChange={(e) => handleInputChange('name', e.target.value)}
-          placeholder="Bangun Bandar"
-        />
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="administrativeUnit">Administrative Unit *</Label>
-          <Input
-            id="administrativeUnit"
-            value={formData.administrativeUnit}
-            onChange={(e) => handleInputChange('administrativeUnit', e.target.value)}
-            placeholder="Estate"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="group">Group *</Label>
-          <Input
-            id="group"
-            value={formData.group}
-            onChange={(e) => handleInputChange('group', e.target.value)}
-            placeholder="Group Manager II"
-          />
-        </div>
-      </div>
-
-      <div className="flex items-center justify-between p-3 bg-muted/30 rounded">
-        <div>
-          <Label htmlFor="isFactory" className="cursor-pointer">Is Factory</Label>
-          <p className="text-sm text-muted-foreground">Unit adalah pabrik</p>
-        </div>
-        <Switch
-          id="isFactory"
-          checked={formData.isFactory}
-          onCheckedChange={(checked) => handleInputChange('isFactory', checked)}
-        />
-      </div>
-
-      <div className="flex items-center justify-between p-3 bg-muted/30 rounded">
-        <div>
-          <Label htmlFor="isActive" className="cursor-pointer">Status Aktif</Label>
-          <p className="text-sm text-muted-foreground">Unit dapat digunakan</p>
-        </div>
-        <Switch
-          id="isActive"
-          checked={formData.isActive}
-          onCheckedChange={(checked) => handleInputChange('isActive', checked)}
-        />
-      </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="p-4 md:p-6">
@@ -287,14 +454,16 @@ export function DivisionMaster() {
                   Tambah Unit
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl">
+              <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
                 <DialogHeader>
                   <DialogTitle>Tambah Unit Baru</DialogTitle>
                   <DialogDescription>
                     Tambahkan unit atau divisi baru ke dalam sistem
                   </DialogDescription>
                 </DialogHeader>
-                <DivisionFormFields />
+                <div className="overflow-y-auto flex-1 pr-2">
+                  {renderFormFields()}
+                </div>
                 <DialogFooter>
                   <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>Batal</Button>
                   <Button onClick={handleAddDivision}>Simpan Data</Button>
@@ -308,11 +477,9 @@ export function DivisionMaster() {
           <table className="w-full min-w-[800px]">
             <thead className="bg-muted/30 border-b border-border">
               <tr>
-                <th className="text-left px-4 md:px-6 py-3 text-sm text-muted-foreground">Kode</th>
                 <th className="text-left px-4 md:px-6 py-3 text-sm text-muted-foreground">Shortname</th>
-                <th className="text-left px-4 md:px-6 py-3 text-sm text-muted-foreground">Nama Unit</th>
-                <th className="text-left px-4 md:px-6 py-3 text-sm text-muted-foreground">Admin Unit</th>
-                <th className="text-left px-4 md:px-6 py-3 text-sm text-muted-foreground">Group</th>
+                <th className="text-left px-4 md:px-6 py-3 text-sm text-muted-foreground">Estate</th>
+                <th className="text-left px-4 md:px-6 py-3 text-sm text-muted-foreground">Administrative Unit</th>
                 <th className="text-center px-4 md:px-6 py-3 text-sm text-muted-foreground">Karyawan</th>
                 <th className="text-center px-4 md:px-6 py-3 text-sm text-muted-foreground">Status</th>
                 <th className="text-center px-4 md:px-6 py-3 text-sm text-muted-foreground">Aksi</th>
@@ -322,23 +489,14 @@ export function DivisionMaster() {
               {filteredDivisions.map((division) => (
                 <tr key={division.id} className="border-b border-border last:border-0 hover:bg-muted/20">
                   <td className="px-4 md:px-6 py-4">
-                    <span className="font-medium">{division.code}</span>
-                  </td>
-                  <td className="px-4 md:px-6 py-4">
                     <Badge variant="secondary" className="bg-primary/10 text-primary">
                       {division.shortname}
                     </Badge>
                   </td>
                   <td className="px-4 md:px-6 py-4">
-                    <div>
-                      <p className="mb-0">{division.name}</p>
-                      {division.isFactory && (
-                        <p className="text-xs text-muted-foreground">Factory</p>
-                      )}
-                    </div>
+                    <p className="mb-0">{division.name}</p>
                   </td>
-                  <td className="px-4 md:px-6 py-4 text-muted-foreground">{division.administrativeUnit}</td>
-                  <td className="px-4 md:px-6 py-4 text-muted-foreground">{division.group}</td>
+                  <td className="px-4 md:px-6 py-4 text-muted-foreground">{getAdminUnitDisplay(division.administrativeUnit)}</td>
                   <td className="px-4 md:px-6 py-4 text-center">
                     <Badge variant="secondary" className="bg-[#2c7be5]/10 text-[#2c7be5]">
                       {division.employeeCount}
@@ -384,14 +542,16 @@ export function DivisionMaster() {
       </Card>
 
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>Edit Unit</DialogTitle>
             <DialogDescription>
               Perbarui informasi unit atau divisi yang dipilih
             </DialogDescription>
           </DialogHeader>
-          <DivisionFormFields />
+          <div className="overflow-y-auto flex-1 pr-2">
+            {renderFormFields()}
+          </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => { setIsEditDialogOpen(false); resetForm(); }}>Batal</Button>
             <Button onClick={handleUpdateDivision}>Update Data</Button>
