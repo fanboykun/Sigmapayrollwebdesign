@@ -561,3 +561,5 @@ export function DivisionMaster() {
     </div>
   );
 }
+
+export default DivisionMaster;

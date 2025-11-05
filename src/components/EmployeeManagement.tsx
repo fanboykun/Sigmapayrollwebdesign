@@ -536,6 +536,18 @@ export function EmployeeManagement() {
     setAssets(assets.filter((asset) => asset.id !== id));
   };
 
+  // Helper function to get division name from ID
+  const getDivisionName = (divisionId: string) => {
+    const division = MASTER_DIVISIONS.find(div => div.id === divisionId);
+    return division ? `${division.shortname} - ${division.name}` : divisionId;
+  };
+
+  // Helper function to get division shortname from ID
+  const getDivisionShortname = (divisionId: string) => {
+    const division = MASTER_DIVISIONS.find(div => div.id === divisionId);
+    return division ? division.shortname : divisionId;
+  };
+
   const formatCurrency = (amount: number) => {
     return `Rp ${amount.toLocaleString("id-ID")}`;
   };
@@ -919,7 +931,7 @@ export function EmployeeManagement() {
                   <SelectContent>
                     {MASTER_DIVISIONS.filter((div) => div.isActive).map(
                       (division) => (
-                        <SelectItem key={division.id} value={division.name}>
+                        <SelectItem key={division.id} value={division.id}>
                           {division.shortname} - {division.name}
                         </SelectItem>
                       )
@@ -1436,7 +1448,7 @@ export function EmployeeManagement() {
                       <SelectItem value="all">Semua Divisi</SelectItem>
                       {MASTER_DIVISIONS.filter((div) => div.isActive).map(
                         (division) => (
-                          <SelectItem key={division.id} value={division.name}>
+                          <SelectItem key={division.id} value={division.id}>
                             {division.shortname}
                           </SelectItem>
                         )
@@ -1579,7 +1591,7 @@ export function EmployeeManagement() {
                           </div>
                         </td>
                         <td className="px-4 md:px-6 py-4">
-                          {employee.division}
+                          {getDivisionShortname(employee.division)}
                         </td>
                         <td className="px-4 md:px-6 py-4 text-muted-foreground">
                           {employee.position}
@@ -1804,7 +1816,7 @@ export function EmployeeManagement() {
                       <p className="text-sm text-muted-foreground mb-1">
                         Divisi
                       </p>
-                      <p>{selectedEmployee.division}</p>
+                      <p>{getDivisionName(selectedEmployee.division)}</p>
                     </div>
                     <div className="p-4 bg-muted/30 rounded md:col-span-2">
                       <p className="text-sm text-muted-foreground mb-1">
